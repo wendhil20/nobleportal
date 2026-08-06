@@ -23,7 +23,7 @@ foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line)
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-define('GOOGLE_CLIENT_ID',     $_ENV['GOOGLE_CLIENT_ID']     ?? '');
+define('GOOGLE_CLIENT_ID', $_ENV['GOOGLE_CLIENT_ID'] ?? '');
 define('GOOGLE_CLIENT_SECRET', $_ENV['GOOGLE_CLIENT_SECRET'] ?? '');
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
@@ -35,8 +35,8 @@ $isLocalhost = (
 define(
     'BASE_URL',
     $isLocalhost
-        ? 'http://localhost/nobleportal'
-        : $_ENV['APP_URL']
+    ? 'http://localhost/nobleportal'
+    : $_ENV['APP_URL']
 );
 
 // ─── Routing ──────────────────────────────────────────────────────────────────
@@ -52,7 +52,19 @@ if ($request === '' || $request === 'login') {
 // ─── Define Admin Routes ──────────────────────────────────────────────────────
 $adminRoutes = [
 
+    'admin-login',
+    'admin-handler',
+    'admin-register',
+    'handler',
+    'admin-logout',
 
+    //hr
+    'hrpage-1',
+    'hrpage-2',
+    'registerprocess',
+    'hr-employees',
+    'hr-viewdocument',
+    'employee_search'
 ];
 
 if (in_array($request, $adminRoutes)) {
@@ -65,8 +77,29 @@ session_start();
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 $routes = [
+    //admin
+    'admin-login'                               => 'controlpanel/auth/auth-1/login.php',
+    'admin-handler'                             => 'controlpanel/auth/auth-1/backend/handler.php',
+    'admin-register'                            => 'controlpanel/auth/auth-2/registerform.php',
+    'handler'                                   => 'controlpanel/auth/auth-2/backend/settings_handler.php',
+    'admin-logout'                              => 'controlpanel/auth/auth-1/logout.php',
 
-    'login' => 'ui/auth/login/index.php',
+    //hr
+    'hrpage-1'                                  => 'controlpanel/hr/page-1/main.php',
+    'hrpage-2'                                  => 'controlpanel/hr/page-2/registeraccount.php',
+    'registerprocess'                           => 'controlpanel/hr/page-2/backend/register_process.php',
+    'hr-employees'                              => 'controlpanel/hr/page-1/mainview.php',
+    'hr-viewdocument'                           => 'controlpanel/hr/page-1/viewdocument.php',
+    'employee_search'                      => 'controlpanel/hr/page-1/backend/ajax_employee_search.php',
+
+    //user
+    'login'                                     => 'ui/auth/login/index.php',
+    'login-process'                             => 'ui/auth/login/backend/loginprocess.php',
+    'logout'                                    => 'ui/auth/logout/logout.php',
+
+    //page
+    'page-1'                                    => 'ui/page/page-1/main.php',
+    'page-1-personalhandler'                    => 'ui/page/page-1/backend/personalhandler.php',
 
 ];
 

@@ -1,21 +1,16 @@
 <?php
-//index.php
-include ROOT_PATH . "/network/connect.php";
+//login.php
 
-// May existing session na? Diretso na sa dashboard, wag na ipakita ulit ang login form
-if (!empty($_SESSION['user_id'])) {
-    header("Location: " . BASE_URL . "/page-1");
-    exit;
-}
+include ROOT_PATH . '/network/connect.php';
+
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Admin Login</title>
     <?php include ROOT_PATH . '/link/top.php'; ?>
 </head>
 
@@ -34,19 +29,19 @@ if (!empty($_SESSION['user_id'])) {
 
         <div class="relative z-10 max-w-sm">
             <p class="font-['Barlow_Condensed'] text-[13px] tracking-[0.16em] uppercase text-[#A9822C] mb-3">
-                Employee portal
+                Admin portal
             </p>
             <h1 class="font-['Barlow_Condensed'] font-bold text-[38px] leading-[1.1] uppercase mb-4">
-                Built on structure,<br>run with precision.
+                Manage the system,<br>oversee every site.
             </h1>
             <p class="text-sm leading-relaxed text-[#EDEFEF]/60">
-                Access schedules, project files, and site reports from one place. For staff and site personnel of
-                Noblehome Construction only.
+                Full administrative access to projects, personnel, and records. Restricted to authorized
+                administrators of Noblehome Construction.
             </p>
         </div>
 
         <div class="relative z-10 font-mono text-[11px] tracking-[0.05em] text-[#EDEFEF]/40">
-            REF&nbsp;NH-2026&nbsp;/&nbsp;PORTAL
+            REF&nbsp;NH-2026&nbsp;/&nbsp;ADMIN
         </div>
     </div>
 
@@ -66,20 +61,26 @@ if (!empty($_SESSION['user_id'])) {
 
             <p
                 class="font-['Barlow_Condensed'] font-semibold text-[13px] tracking-[0.16em] uppercase text-black mb-1.5">
-                Site access
+                Admin access
             </p>
             <h2 class="font-['Barlow_Condensed'] font-bold text-[28px] uppercase leading-[1.1] mb-8 text-amber-600">
                 Log in to continue
             </h2>
 
-            <form action="<?= BASE_URL ?>/login-process" method="post" class="flex flex-col gap-5">
+            <?php if (isset($_GET['error'])): ?>
+                <div class="mb-5 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-2.5 rounded-md">
+                    Invalid email or password.
+                </div>
+            <?php endif; ?>
+
+            <form action="<?= BASE_URL ?>/admin-handler" method="post" class="flex flex-col gap-5">
                 <div>
-                    <label for="username"
+                    <label for="email"
                         class="block text-[11px] font-semibold tracking-[0.1em] uppercase text-[#6B7785] mb-1.5">
-                        Employee ID
+                        Email
                     </label>
-                    <input type="text" name="username" id="username" placeholder="Enter your Employee ID"
-                        autocomplete="username"
+                    <input type="email" name="email" id="email" placeholder="Enter your admin email"
+                        autocomplete="username" required autofocus
                         class="w-full bg-white border border-[#D8DBDE] rounded-md px-3.5 py-2.5 text-[15px] text-[#1B2733] placeholder-[#9AA2AA] outline-none focus:border-[#0B2540] focus:ring-2 focus:ring-[#0B2540]/10 transition-colors">
                 </div>
 
@@ -89,20 +90,19 @@ if (!empty($_SESSION['user_id'])) {
                             class="block text-[11px] font-semibold tracking-[0.1em] uppercase text-[#6B7785]">
                             Password
                         </label>
-
                     </div>
                     <input type="password" name="password" id="password" placeholder="Enter your password"
-                        autocomplete="current-password"
+                        autocomplete="current-password" required
                         class="w-full bg-white border border-[#D8DBDE] rounded-md px-3.5 py-2.5 text-[15px] text-[#1B2733] placeholder-[#9AA2AA] outline-none focus:border-[#0B2540] focus:ring-2 focus:ring-[#0B2540]/10 transition-colors">
                 </div>
 
                 <button type="submit"
-                    class="mt-2 w-full py-3 bg-black text-[#FAFAF7] font-['Barlow_Condensed'] font-bold text-[15px] tracking-[0.08em] uppercase rounded-md transition-colors">
+                    class="mt-2 w-full py-3 bg-black text-[#FAFAF7] font-['Barlow_Condensed'] font-bold text-[15px] tracking-[0.08em] uppercase rounded-md transition-colors hover:bg-[#0B2540]">
                     Log in
                 </button>
             </form>
 
-            <p class="mt-8 text-xs text-[#9AA2AA] text-center">Authorized personnel only</p>
+            <p class="mt-8 text-xs text-[#9AA2AA] text-center">Restricted to authorized administrators</p>
         </div>
     </div>
 
