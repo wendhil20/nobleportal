@@ -14,9 +14,9 @@ if ($isLocal) {
 } else {
     // Production Configuration
     $host = getenv('DB_HOST_PROD') ?: 'localhost';
-    $username = getenv('DB_USER_PROD') ?: 'u318146187_noblev2';
-    $password = getenv('DB_PASSWORD_PROD') ?: 'Noblev2123';
-    $database = getenv('DB_NAME_PROD') ?: 'u318146187_noblev2';
+    $username = getenv('DB_USER_PROD') ?: 'u441967563_nobleportal';
+    $password = getenv('DB_PASSWORD_PROD') ?: 'Nobleportal123';
+    $database = getenv('DB_NAME_PROD') ?: 'u441967563_nobleportal';
 }
 
 // Create connection
