@@ -57,6 +57,7 @@ $adminRoutes = [
     'admin-register',
     'handler',
     'admin-logout',
+    'admin-notification',
 
     //hr
     'hrpage-1',
@@ -64,7 +65,8 @@ $adminRoutes = [
     'registerprocess',
     'hr-employees',
     'hr-viewdocument',
-    'employee_search'
+    'employee_search',
+    'hr-approved',
 ];
 
 if (in_array($request, $adminRoutes)) {
@@ -77,6 +79,11 @@ session_start();
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 $routes = [
+
+    //admin notification
+    'admin-notification'                        => 'controlpanel/notification/admin-notification.php',
+    'admin-notification-handler'                => 'controlpanel/notification/backend/admin-notification-handler.php',
+
     //admin
     'admin-login'                               => 'controlpanel/auth/auth-1/login.php',
     'admin-handler'                             => 'controlpanel/auth/auth-1/backend/handler.php',
@@ -90,16 +97,24 @@ $routes = [
     'registerprocess'                           => 'controlpanel/hr/page-2/backend/register_process.php',
     'hr-employees'                              => 'controlpanel/hr/page-1/mainview.php',
     'hr-viewdocument'                           => 'controlpanel/hr/page-1/viewdocument.php',
-    'employee_search'                      => 'controlpanel/hr/page-1/backend/ajax_employee_search.php',
+    'employee_search'                           => 'controlpanel/hr/page-1/backend/ajax_employee_search.php',
+    'hr-approved'                               => 'controlpanel/hr/page-1/backend/hr-approved.php',
 
     //user
     'login'                                     => 'ui/auth/login/index.php',
     'login-process'                             => 'ui/auth/login/backend/loginprocess.php',
     'logout'                                    => 'ui/auth/logout/logout.php',
+    //notification
+    'notification'                              => 'ui/notification/notification.php',
 
-    //page
+    //page 1
     'page-1'                                    => 'ui/page/page-1/main.php',
     'page-1-personalhandler'                    => 'ui/page/page-1/backend/personalhandler.php',
+    'page-1-viewdocument'                       => 'ui/page/page-1/backend/page-1-viewdocument.php',
+
+    //page 2
+    'page-2'                                    => 'ui/page/page-2/employmee-main.php',
+
 
 ];
 

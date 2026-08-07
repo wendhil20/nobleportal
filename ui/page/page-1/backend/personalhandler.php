@@ -66,6 +66,10 @@ $stmt->execute();
 $currentStatusRow = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
+// Alamin kung bagong submission ba ito o resubmission (galing REJECTED) —
+// gagamitin sa wording ng notification sa ibaba.
+$isResubmission = !empty($currentStatusRow['status']) && $currentStatusRow['status'] === 'REJECTED';
+
 if (!empty($currentStatusRow['status']) && $currentStatusRow['status'] === 'PENDING') {
     redirectWithError("Your 201 File is pending review and cannot be edited right now.", $userId, $oldInput);
 }
@@ -293,6 +297,25 @@ try {
             $insertStmt->close();
         }
     }
+
+    // -- Notify HR Head na may bagong 201 File submission / resubmission na dapat i-review --
+    // Dapat tumugma ito sa access guard ng mainview.php: requireAccess('hr', 'head')
+    // kaya for_role = 'hr' AT for_position = 'head' — hindi lang basta role na 'hr',
+    // dahil ang mismong page ay 'hr' + 'head' lang ang pwedeng bumukas.
+    // NOTE: i-adjust ang halaga ng $notifLink kung iba ang route ng HR mainview.php mo
+    // (dati: /hrpage-1-mainview?id=... — palitan kung ibang path ang totoong route).
+    $notifTitle = $isResubmission
+        ? "201 File resubmitted for review"
+        : "New 201 File submitted for review";
+    $notifMessage = trim("$firstName $lastName") . " has " . ($isResubmission ? "resubmitted" : "submitted") . " their 201 File and is waiting for HR review.";
+    $notifLink = BASE_URL . "/hrpage-1-mainview?id=" . $userId;
+
+    $notifStmt = $conn->prepare("INSERT INTO nobleportalnotification
+        (for_role, for_position, for_user_id, title, message, link, is_read, created_at)
+        VALUES ('hr', 'head', NULL, ?, ?, ?, 0, NOW())");
+    $notifStmt->bind_param("sss", $notifTitle, $notifMessage, $notifLink);
+    $notifStmt->execute();
+    $notifStmt->close();
 
     $conn->commit();
     header("Location: " . BASE_URL . "/page-1?saved=1");

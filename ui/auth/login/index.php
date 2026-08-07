@@ -19,7 +19,7 @@ if (!empty($_SESSION['user_id'])) {
     <?php include ROOT_PATH . '/link/top.php'; ?>
 </head>
 
-<body class="min-h-screen flex font-['Inter'] bg-[#FAFAF7] text-[#1B2733]">
+<body class="min-h-dvh flex font-['Inter'] bg-[#FAFAF7] text-[#1B2733]">
 
     <!-- LEFT: brand / blueprint panel -->
     <div class="hidden lg:flex lg:w-[46%] relative flex-col justify-between text-[#EDEFEF] p-12 overflow-hidden bg-cover bg-center"
@@ -51,7 +51,7 @@ if (!empty($_SESSION['user_id'])) {
     </div>
 
     <!-- RIGHT: form panel -->
-    <div class="flex-1 flex items-center justify-center p-8 bg-gray-100">
+    <div class="flex-1 flex items-start lg:items-center justify-center p-8 py-12 lg:py-8 bg-gray-100 overflow-y-auto">
         <div class="w-full max-w-[380px]">
 
             <!-- mobile-only brand mark -->

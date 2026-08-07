@@ -143,6 +143,19 @@ function navIconClass($path)
 
         <?php endif; ?>
 
+        <!-- ==== Settings: nakalabas na sa hr+head check — makikita ng LAHAT ng
+             naka-login na staff, kahit anong role o position. Ang notification.php
+             mismo ang bahala na i-filter kung anong notifications ang makikita ng
+             bawat isa base sa sarili nilang role/position. ==== -->
+        <p class="px-3 py-2 text-[10px] font-semibold tracking-[0.15em] uppercase text-black/30">Settings</p>
+
+        <a href="<?= BASE_URL ?>/admin-notification" class="<?= navLinkClass('/admin-notification') ?>">
+            <span class="flex items-center justify-center w-5 h-5 shrink-0">
+                <i class="fa-solid fa-bell <?= navIconClass('/admin-notification') ?>"></i>
+            </span>
+            <span>Notification System</span>
+        </a>
+
     </nav>
 
 </aside>
