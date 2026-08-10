@@ -61,12 +61,18 @@ $adminRoutes = [
 
     //hr
     'hrpage-1',
-    'hrpage-2',
-    'registerprocess',
     'hr-employees',
     'hr-viewdocument',
     'employee_search',
     'hr-approved',
+    'hr-employeedetails',
+    'save-employment',
+    'departmentcrud',
+    'view-information',
+
+    //hr page 2
+    'hrpage-2',
+    'registerprocess',
 ];
 
 if (in_array($request, $adminRoutes)) {
@@ -93,19 +99,27 @@ $routes = [
 
     //hr
     'hrpage-1'                                  => 'controlpanel/hr/page-1/main.php',
-    'hrpage-2'                                  => 'controlpanel/hr/page-2/registeraccount.php',
-    'registerprocess'                           => 'controlpanel/hr/page-2/backend/register_process.php',
     'hr-employees'                              => 'controlpanel/hr/page-1/mainview.php',
     'hr-viewdocument'                           => 'controlpanel/hr/page-1/viewdocument.php',
     'employee_search'                           => 'controlpanel/hr/page-1/backend/ajax_employee_search.php',
     'hr-approved'                               => 'controlpanel/hr/page-1/backend/hr-approved.php',
+    'hr-employeedetails'                        => 'controlpanel/hr/page-1/hr-employeedetails.php',
+    'save-employment'                           => 'controlpanel/hr/page-1/backend/save_employment.php',
+    'departmentcrud'                            => 'controlpanel/hr/page-1/backend/department_crud.php',
+    'view-information'                          => 'controlpanel/hr/page-1/viewinformation.php',
+
+    //hr page 2
+    'hrpage-2'                                  => 'controlpanel/hr/page-2/registeraccount.php',
+    'registerprocess'                           => 'controlpanel/hr/page-2/backend/register_process.php',
 
     //user
     'login'                                     => 'ui/auth/login/index.php',
     'login-process'                             => 'ui/auth/login/backend/loginprocess.php',
     'logout'                                    => 'ui/auth/logout/logout.php',
+
     //notification
     'notification'                              => 'ui/notification/notification.php',
+    'notification-handler'                      => 'ui/notification/backend/employee-notification-actions.php',
 
     //page 1
     'page-1'                                    => 'ui/page/page-1/main.php',
@@ -113,7 +127,7 @@ $routes = [
     'page-1-viewdocument'                       => 'ui/page/page-1/backend/page-1-viewdocument.php',
 
     //page 2
-    'page-2'                                    => 'ui/page/page-2/employmee-main.php',
+    'page-2'                                    => 'ui/page/page-2/employee-main.php',
 
 
 ];

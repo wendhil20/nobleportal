@@ -308,7 +308,7 @@ try {
         ? "201 File resubmitted for review"
         : "New 201 File submitted for review";
     $notifMessage = trim("$firstName $lastName") . " has " . ($isResubmission ? "resubmitted" : "submitted") . " their 201 File and is waiting for HR review.";
-    $notifLink = BASE_URL . "/hrpage-1-mainview?id=" . $userId;
+    $notifLink = BASE_URL . "/hrpage-employees?id=" . $userId;
 
     $notifStmt = $conn->prepare("INSERT INTO nobleportalnotification
         (for_role, for_position, for_user_id, title, message, link, is_read, created_at)

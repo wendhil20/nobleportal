@@ -2,6 +2,32 @@
 //navigation/top.php
 include ROOT_PATH . "/controlpanel/navigation/helpers/helpers.php";
 
+// ==== Unread notification count (para sa red dot sa sidebar) ====
+// Same AND-logic filter gaya ng ginamit sa notification.php: kailangan magmatch
+// yung role AT position (kung parehong naka-set), hindi sapat ang isa lang.
+$navUnreadNotifCount = 0;
+if (isset($conn)) {
+    $navAdminId = $_SESSION['admin_id'] ?? 0;
+    $navAdminRole = $_SESSION['admin_role'] ?? '';
+    $navAdminPosition = $_SESSION['admin_position'] ?? null;
+
+    $navNotifStmt = $conn->prepare("SELECT COUNT(*) AS cnt
+        FROM nobleportalnotification
+        WHERE is_read = 0
+  AND (
+        (for_user_id = ? AND recipient_type = 'admin')
+                OR (
+                     (for_role IS NOT NULL OR for_position IS NOT NULL)
+                     AND (for_role IS NULL OR for_role = ?)
+                     AND (for_position IS NULL OR for_position = ?)
+                   )
+              )");
+    $navNotifStmt->bind_param("iss", $navAdminId, $navAdminRole, $navAdminPosition);
+    $navNotifStmt->execute();
+    $navUnreadNotifCount = (int) ($navNotifStmt->get_result()->fetch_assoc()['cnt'] ?? 0);
+    $navNotifStmt->close();
+}
+
 // Determine current page for active-state highlighting
 if (!function_exists('isActive')) {
     function isActive($path)
@@ -22,10 +48,9 @@ if (!function_exists('isActive')) {
 function navLinkClass($path)
 {
     return isActive($path)
-        ? 'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-black/5 text-black transition-colors duration-150'
-        : 'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-black/70 hover:bg-white/5 hover:text-black transition-colors duration-150';
+        ? 'group flex items-center gap-3 px-3 py-2.5 border-l-[3px] border-[#A9822C] rounded-r-lg bg-black/5 text-black transition-colors duration-150'
+        : 'group flex items-center gap-3 px-3 py-2.5 border-l-[3px] border-transparent rounded-lg text-sm text-black/70 hover:bg-white/5 hover:text-black transition-colors duration-150';
 }
-
 function navIconClass($path)
 {
     return isActive($path)
@@ -55,21 +80,20 @@ function navIconClass($path)
         </svg>
     </button>
 
-    <!-- Header / Brand -->
-    <div class="relative px-5 py-6 border-b border-white/5">
-        <div class="relative z-10 flex items-center gap-3">
-            <img src="<?= BASE_URL ?>/icon/logo/logo.png" alt="Noblehome Construction"
-                class="w-9 h-9 object-contain shrink-0">
-            <div class="flex flex-col leading-tight">
-                <span
-                    class="font-['Barlow_Condensed'] font-semibold text-base tracking-[0.1em] uppercase text-black/90">
-                    Noblehome
-                </span>
-                <span
-                    class="font-['Barlow_Condensed'] font-medium text-[11px] tracking-[0.15em] uppercase text-black/50">
-                    Construction Corp.
-                </span>
-            </div>
+    <!-- Brand header (navy zone so the mark reads immediately, mirrors mobile top bar) -->
+    <div class="bg-black px-5 pt-6 pb-5 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-sm">
+            <img src="<?= BASE_URL ?>/icon/logo/logo.png" alt="Noblehome Construction" class="w-8 h-8 object-contain">
+        </div>
+        <div class="min-w-0">
+            <p
+                class="font-['Barlow_Condensed'] font-semibold text-[13px] leading-tight tracking-[0.06em] uppercase text-white truncate">
+                <span class="text-amber-500">Noble</span>home
+            </p>
+            <p
+                class="font-['Barlow_Condensed'] font-medium text-[10px] leading-tight tracking-[0.16em] uppercase text-white truncate mt-0.5">
+                Construction Corp.
+            </p>
         </div>
     </div>
 
@@ -85,9 +109,6 @@ function navIconClass($path)
                 <span class="text-xs font-medium text-black/80 truncate">
                     <?= isset($_SESSION['admin_name']) ? htmlspecialchars($_SESSION['admin_name']) : 'Admin' ?>
                 </span>
-                <span class="text-[10px] text-black/40">
-                    &copy; <?php echo date('Y'); ?> Company Name
-                </span>
             </div>
             <svg id="profileDropdownChevron" xmlns="http://www.w3.org/2000/svg"
                 class="h-3.5 w-3.5 text-black/40 shrink-0 transition-transform duration-200" fill="none"
@@ -98,11 +119,11 @@ function navIconClass($path)
 
         <!-- Dropdown Menu -->
         <div id="profileDropdownMenu"
-            class="hidden mt-1.5 rounded-lg border border-black/5 bg-white shadow-sm overflow-hidden">
+            class="hidden absolute left-4 right-4 top-[calc(100%-4px)] mt-1.5 rounded-lg border border-black/5 bg-white shadow-lg overflow-hidden z-50">
             <a href="<?= BASE_URL ?>/admin-logout"
                 class="flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150">
                 <i class="fa-solid fa-arrow-right-from-bracket text-[13px]"></i>
-                <span>Logout</span>
+                <span class="text-xs font-medium">Logout</span>
             </a>
         </div>
     </div>
@@ -143,15 +164,14 @@ function navIconClass($path)
 
         <?php endif; ?>
 
-        <!-- ==== Settings: nakalabas na sa hr+head check — makikita ng LAHAT ng
-             naka-login na staff, kahit anong role o position. Ang notification.php
-             mismo ang bahala na i-filter kung anong notifications ang makikita ng
-             bawat isa base sa sarili nilang role/position. ==== -->
         <p class="px-3 py-2 text-[10px] font-semibold tracking-[0.15em] uppercase text-black/30">Settings</p>
 
         <a href="<?= BASE_URL ?>/admin-notification" class="<?= navLinkClass('/admin-notification') ?>">
-            <span class="flex items-center justify-center w-5 h-5 shrink-0">
+            <span class="relative flex items-center justify-center w-5 h-5 shrink-0">
                 <i class="fa-solid fa-bell <?= navIconClass('/admin-notification') ?>"></i>
+                <?php if ($navUnreadNotifCount > 0): ?>
+                    <span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                <?php endif; ?>
             </span>
             <span>Notification System</span>
         </a>

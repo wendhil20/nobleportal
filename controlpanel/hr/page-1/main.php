@@ -72,13 +72,14 @@ while ($row = $res->fetch_assoc()) {
                             <th class="px-4 py-3">Name</th>
                             <th class="px-4 py-3">Username</th>
                             <th class="px-4 py-3">201 File Status</th>
+                            <th class="px-4 py-3">Employment Details</th>
                             <th class="px-4 py-3"></th>
                         </tr>
                     </thead>
                     <tbody id="employeeTableBody">
                         <?php if (empty($employees)): ?>
                             <tr>
-                                <td colspan="4" class="px-4 py-6 text-center text-[#9AA2AA]">No employees found.</td>
+                                <td colspan="5" class="px-4 py-6 text-center text-[#9AA2AA]">No employees found.</td>
                             </tr>
                         <?php endif; ?>
 
@@ -96,6 +97,12 @@ while ($row = $res->fetch_assoc()) {
                                     <?php else: ?>
                                         <span class="text-[11px] font-semibold text-[#9AA2AA] bg-[#F5F6F7] border border-[#E8EAEC] rounded-full px-2.5 py-1">Not submitted</span>
                                     <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <a href="<?= BASE_URL ?>/view-information?id=<?= (int) $emp['id'] ?>&tab=employment"
+                                        class="text-[#0B2540] font-semibold text-[13px] hover:underline">
+                                        <?= !empty($hasInfo[(int) $emp['id']]) ? 'View Employment Details →' : 'Add Employment Details →' ?>
+                                    </a>
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <a href="<?= BASE_URL ?>/hr-employees?id=<?= (int) $emp['id'] ?>"
@@ -131,7 +138,7 @@ while ($row = $res->fetch_assoc()) {
                 if (!employees.length) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="4" class="px-4 py-6 text-center text-[#9AA2AA]">No employees found.</td>
+                            <td colspan="5" class="px-4 py-6 text-center text-[#9AA2AA]">No employees found.</td>
                         </tr>`;
                     return;
                 }
@@ -141,11 +148,19 @@ while ($row = $res->fetch_assoc()) {
                         ? `<span class="text-[11px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">On file</span>`
                         : `<span class="text-[11px] font-semibold text-[#9AA2AA] bg-[#F5F6F7] border border-[#E8EAEC] rounded-full px-2.5 py-1">Not submitted</span>`;
 
+                    const employmentUrl = emp.employment_url || `${emp.view_url}&tab=employment`;
+                    const employmentLabel = emp.on_file ? 'View Employment Details →' : 'Add Employment Details →';
+
                     return `
                         <tr class="border-t border-[#E8EAEC] hover:bg-[#F5F6F7]/60">
                             <td class="px-4 py-3 font-medium text-[#1B2733]">${escapeHtml(emp.name)}</td>
                             <td class="px-4 py-3 text-[#6B7785]">${escapeHtml(emp.username)}</td>
                             <td class="px-4 py-3">${statusBadge}</td>
+                            <td class="px-4 py-3">
+                                <a href="${employmentUrl}" class="text-[#0B2540] font-semibold text-[13px] hover:underline">
+                                    ${employmentLabel}
+                                </a>
+                            </td>
                             <td class="px-4 py-3 text-right">
                                 <a href="${emp.view_url}" class="text-[#0B2540] font-semibold text-[13px] hover:underline">
                                     View 201 File →

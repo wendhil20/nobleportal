@@ -1,64 +1,23 @@
 <?php
-//notification.php
+//notification.php 
 include ROOT_PATH . "/network/connect.php";
 
-$targetUserId = $_SESSION['user_id'] ?? 0;
+include ROOT_PATH . "/ui/notification/backend/employee-notification-actions.php";
 
-if ($targetUserId <= 0) {
+$userId = $_SESSION['user_id'] ?? 0;
+
+if ($userId <= 0) {
     header("Location: " . BASE_URL . "/login");
     exit;
 }
 
-// ==== Handle mark-as-read actions (POST) ====
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['mark_read_id'])) {
-        $notifId = (int) $_POST['mark_read_id'];
-        $stmt = $conn->prepare("UPDATE nobleportalnotification SET is_read = 1 WHERE id = ? AND (for_user_id = ? OR for_user_id IS NULL)");
-        $stmt->bind_param("ii", $notifId, $targetUserId);
-        $stmt->execute();
-        $stmt->close();
-    }
+// ==== Fetch notifications relevant to this employee only ====
 
-    if (isset($_POST['mark_all_read'])) {
-        $role     = $_SESSION['role'] ?? null;
-        $position = $_SESSION['position'] ?? null;
-
-        // Kailangang AND ang role at position kapag pareho silang naka-set sa isang
-        // notification (hal. 'hr' + 'head'), hindi OR — kung hindi, sinumang 'hr'
-        // (kahit hindi 'head') ay mababansagan ding tugma, gayong hindi naman dapat.
-        $stmt = $conn->prepare("UPDATE nobleportalnotification
-            SET is_read = 1
-            WHERE for_user_id = ?
-               OR (
-                    (for_role IS NOT NULL OR for_position IS NOT NULL)
-                    AND (for_role IS NULL OR for_role = ?)
-                    AND (for_position IS NULL OR for_position = ?)
-                  )");
-        $stmt->bind_param("iss", $targetUserId, $role, $position);
-        $stmt->execute();
-        $stmt->close();
-    }
-
-    header("Location: " . BASE_URL . "/system-notification");
-    exit;
-}
-
-// ==== Fetch notifications relevant to this user ====
-$role     = $_SESSION['role'] ?? null;
-$position = $_SESSION['position'] ?? null;
-
-// Parehong AND-logic dito para sa fetch — tumutugma lang kung tumugma ang lahat
-// ng naka-set na targeting field (role at/o position), hindi kung kahit alin sa dalawa.
-$stmt = $conn->prepare("SELECT id, for_role, for_position, for_user_id, title, message, link, is_read, created_at
+$stmt = $conn->prepare("SELECT id, for_user_id, recipient_type, title, message, link, is_read, created_at
     FROM nobleportalnotification
-    WHERE for_user_id = ?
-       OR (
-            (for_role IS NOT NULL OR for_position IS NOT NULL)
-            AND (for_role IS NULL OR for_role = ?)
-            AND (for_position IS NULL OR for_position = ?)
-          )
+    WHERE for_user_id = ? AND recipient_type = 'user'
     ORDER BY created_at DESC");
-$stmt->bind_param("iss", $targetUserId, $role, $position);
+$stmt->bind_param("i", $userId);
 $stmt->execute();
 $res = $stmt->get_result();
 $notifications = $res->fetch_all(MYSQLI_ASSOC);
@@ -66,17 +25,23 @@ $stmt->close();
 
 $unreadCount = 0;
 foreach ($notifications as $n) {
-    if ((int) $n['is_read'] === 0) $unreadCount++;
+    if ((int) $n['is_read'] === 0)
+        $unreadCount++;
 }
 
 function timeAgo($datetime)
 {
-    if (!$datetime) return '';
+    if (!$datetime)
+        return '';
     $diff = time() - strtotime($datetime);
-    if ($diff < 60) return 'Just now';
-    if ($diff < 3600) return floor($diff / 60) . 'm ago';
-    if ($diff < 86400) return floor($diff / 3600) . 'h ago';
-    if ($diff < 604800) return floor($diff / 86400) . 'd ago';
+    if ($diff < 60)
+        return 'Just now';
+    if ($diff < 3600)
+        return floor($diff / 60) . 'm ago';
+    if ($diff < 86400)
+        return floor($diff / 3600) . 'h ago';
+    if ($diff < 604800)
+        return floor($diff / 86400) . 'd ago';
     return date('M j, Y', strtotime($datetime));
 }
 ?>
@@ -86,11 +51,11 @@ function timeAgo($datetime)
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notification System</title>
+    <title>Notifications</title>
     <?php include ROOT_PATH . "/link/top.php"; ?>
 </head>
 
-<body class="bg-[#F5F6F7] font-['Inter']">
+<body class="bg-[#EDEAE1] font-['Inter']">
 
     <?php include ROOT_PATH . "/ui/navigation/top.php"; ?>
 
@@ -99,16 +64,16 @@ function timeAgo($datetime)
 
             <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <div>
-                    <p class="font-['Barlow_Condensed'] font-semibold text-[13px] tracking-[0.16em] uppercase text-[#A9822C] mb-1">
-                        Settings
+                    <p class="text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#A9822C] mb-1.5">
+                        Account
                     </p>
-                    <h1 class="font-['Barlow_Condensed'] font-bold text-[26px] uppercase text-[#0B2540] leading-none">
-                        Notification System
+                    <h1 class="font-serif font-normal text-[26px] text-[#0B2540] leading-tight">
+                        Notifications
                     </h1>
                 </div>
 
                 <?php if ($unreadCount > 0): ?>
-                    <form action="<?= BASE_URL ?>/system-notification" method="post">
+                    <form action="<?= BASE_URL ?>/employee-notification" method="post">
                         <button type="submit" name="mark_all_read" value="1"
                             class="text-[12.5px] font-semibold text-[#0B2540] hover:text-[#A9822C] transition-colors">
                             Mark all as read
@@ -117,29 +82,32 @@ function timeAgo($datetime)
                 <?php endif; ?>
             </div>
 
-            <div class="bg-white border border-black/5 rounded-xl overflow-hidden">
+            <div class="bg-[#FCFBF8] border border-[#D9D4C6] rounded-sm overflow-hidden">
 
                 <?php if (empty($notifications)): ?>
                     <div class="py-16 text-center">
-                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#C7CCD1" stroke-width="1.6" class="mx-auto mb-3">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#C7CCD1" stroke-width="1.6"
+                            class="mx-auto mb-3">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                         </svg>
                         <p class="text-[14px] text-[#6B7785] font-medium">You have no notifications yet.</p>
                     </div>
                 <?php else: ?>
-                    <ul class="divide-y divide-[#EDEFF1]">
+                    <ul class="divide-y divide-[#E4E1D8]">
                         <?php foreach ($notifications as $n):
                             $isUnread = (int) $n['is_read'] === 0;
                             $href = !empty($n['link']) ? htmlspecialchars($n['link']) : null;
                             ?>
-                            <li class="relative <?= $isUnread ? 'bg-[#F7F9FC]' : 'bg-white' ?>">
+                            <li class="relative <?= $isUnread ? 'bg-[#F7F4EA]' : 'bg-[#FCFBF8]' ?>">
                                 <div class="flex items-start gap-3 px-5 py-4">
-                                    <span class="mt-1.5 w-2 h-2 rounded-full shrink-0 <?= $isUnread ? 'bg-[#A9822C]' : 'bg-transparent' ?>"></span>
+                                    <span
+                                        class="mt-1.5 w-2 h-2 rounded-full shrink-0 <?= $isUnread ? 'bg-[#A9822C]' : 'bg-transparent' ?>"></span>
 
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-start justify-between gap-3">
-                                            <p class="text-[13.5px] <?= $isUnread ? 'font-semibold text-[#1B2733]' : 'font-medium text-[#4B5866]' ?> leading-snug">
+                                            <p
+                                                class="text-[13.5px] <?= $isUnread ? 'font-semibold text-[#241F14]' : 'font-medium text-[#4B5866]' ?> leading-snug">
                                                 <?= htmlspecialchars($n['title'] ?: 'Notification') ?>
                                             </p>
                                             <span class="text-[11px] text-[#9AA2AA] shrink-0 whitespace-nowrap">
@@ -153,24 +121,22 @@ function timeAgo($datetime)
                                             </p>
                                         <?php endif; ?>
 
-                                        <div class="flex items-center gap-3 mt-2">
-                                            <?php if ($href): ?>
-                                                <a href="<?= $href ?>"
-                                                    class="text-[11.5px] font-semibold text-[#0B2540] hover:text-[#A9822C] inline-flex items-center gap-1">
-                                                    View
-                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg>
-                                                </a>
-                                            <?php endif; ?>
-
-                                            <?php if ($isUnread): ?>
-                                                <form action="<?= BASE_URL ?>/system-notification" method="post">
-                                                    <input type="hidden" name="mark_read_id" value="<?= (int) $n['id'] ?>">
-                                                    <button type="submit" class="text-[11.5px] font-medium text-[#9AA2AA] hover:text-[#0B2540]">
-                                                        Mark as read
-                                                    </button>
-                                                </form>
-                                            <?php endif; ?>
-                                        </div>
+                                      <?php if ($href): ?>
+    <div class="flex items-center gap-3 mt-2">
+        <form action="<?= BASE_URL ?>/notification-handler" method="post">
+            <input type="hidden" name="mark_read_id" value="<?= (int) $n['id'] ?>">
+            <button type="submit"
+                class="text-[11.5px] font-semibold text-[#0B2540] hover:text-[#A9822C] inline-flex items-center gap-1">
+                View
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M7 17L17 7M7 7h10v10" />
+                </svg>
+            </button>
+        </form>
+    </div>
+<?php endif; ?>
                                     </div>
                                 </div>
                             </li>
@@ -182,6 +148,21 @@ function timeAgo($datetime)
 
         </div>
     </main>
+
+    <script>
+        document.querySelectorAll('.mark-read-view').forEach(function (link) {
+            link.addEventListener('click', function () {
+                const id = this.dataset.markId;
+
+                fetch('<?= BASE_URL ?>/notification-handler', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'mark_read_id=' + encodeURIComponent(id),
+                    keepalive: true
+                });
+            });
+        });
+    </script>
 
 </body>
 

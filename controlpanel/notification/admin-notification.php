@@ -3,48 +3,21 @@
 include ROOT_PATH . "/network/connect.php";
 include ROOT_PATH . "/controlpanel/auth/role/auth_guard.php";
 
-// NOTE: i-adjust kung iba ang actual session key mo para sa admin id
-// (ginamit dito: $_SESSION['admin_id'] — base sa pattern ng admin_name / admin_position
+
+include ROOT_PATH . "/controlpanel/notification/backend/notification-actions.php";
+
 // na ginagamit na sa controlpanel/navigation/top.php).
 $adminId       = $_SESSION['admin_id'] ?? 0;
 $adminRole     = $_SESSION['admin_role'] ?? '';
 $adminPosition = $_SESSION['admin_position'] ?? null;
 
-// ==== Handle mark-as-read actions (POST) ====
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['mark_read_id'])) {
-        $notifId = (int) $_POST['mark_read_id'];
-        $stmt = $conn->prepare("UPDATE nobleportalnotification SET is_read = 1 WHERE id = ? AND (for_user_id = ? OR for_user_id IS NULL)");
-        $stmt->bind_param("ii", $notifId, $adminId);
-        $stmt->execute();
-        $stmt->close();
-    }
-
-    if (isset($_POST['mark_all_read'])) {
-        // AND-logic: kapag pareho naka-set ang for_role at for_position sa isang
-        // notification (hal. 'hr' + 'head'), dapat tugma silang dalawa bago mabilang
-        // na "para sa akin" ang notification — hindi sapat ang isa lang sa dalawa.
-        $stmt = $conn->prepare("UPDATE nobleportalnotification
-            SET is_read = 1
-            WHERE for_user_id = ?
-               OR (
-                    (for_role IS NOT NULL OR for_position IS NOT NULL)
-                    AND (for_role IS NULL OR for_role = ?)
-                    AND (for_position IS NULL OR for_position = ?)
-                  )");
-        $stmt->bind_param("iss", $adminId, $adminRole, $adminPosition);
-        $stmt->execute();
-        $stmt->close();
-    }
-
-    header("Location: " . BASE_URL . "/notification");
-    exit;
-}
-
 // ==== Fetch notifications relevant to this admin ====
-$stmt = $conn->prepare("SELECT id, for_role, for_position, for_user_id, title, message, link, is_read, created_at
+// NOTE: for_user_id branch is scoped to recipient_type = 'admin' para hindi
+// makita ng admin yung mga notification na for_user_id man ay para talaga
+// sa employee/user side lang (recipient_type = 'user').
+$stmt = $conn->prepare("SELECT id, for_role, for_position, for_user_id, recipient_type, title, message, link, is_read, created_at
     FROM nobleportalnotification
-    WHERE for_user_id = ?
+    WHERE (for_user_id = ? AND recipient_type = 'admin')
        OR (
             (for_role IS NOT NULL OR for_position IS NOT NULL)
             AND (for_role IS NULL OR for_role = ?)
@@ -146,24 +119,20 @@ function timeAgo($datetime)
                                             </p>
                                         <?php endif; ?>
 
-                                        <div class="flex items-center gap-3 mt-2">
-                                            <?php if ($href): ?>
+                                        <?php if ($href): ?>
+                                            <div class="flex items-center gap-3 mt-2">
                                                 <a href="<?= $href ?>"
-                                                    class="text-[11.5px] font-semibold text-[#0B2540] hover:text-[#A9822C] inline-flex items-center gap-1">
+                                                    <?php if ($isUnread): ?>
+                                                        class="mark-read-view text-[11.5px] font-semibold text-[#0B2540] hover:text-[#A9822C] inline-flex items-center gap-1"
+                                                        data-mark-id="<?= (int) $n['id'] ?>"
+                                                    <?php else: ?>
+                                                        class="text-[11.5px] font-semibold text-[#0B2540] hover:text-[#A9822C] inline-flex items-center gap-1"
+                                                    <?php endif; ?>>
                                                     View
                                                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg>
                                                 </a>
-                                            <?php endif; ?>
-
-                                            <?php if ($isUnread): ?>
-                                                <form action="<?= BASE_URL ?>/notification" method="post">
-                                                    <input type="hidden" name="mark_read_id" value="<?= (int) $n['id'] ?>">
-                                                    <button type="submit" class="text-[11.5px] font-medium text-[#9AA2AA] hover:text-[#0B2540]">
-                                                        Mark as read
-                                                    </button>
-                                                </form>
-                                            <?php endif; ?>
-                                        </div>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </li>
@@ -175,6 +144,24 @@ function timeAgo($datetime)
 
         </div>
     </div>
+
+    <script>
+        // Pag click ng "View" sa isang unread notification, i-mark siyang
+        // read sa background (keepalive) habang diretso namang nag-nanavigate
+        // yung browser papunta sa link — walang preventDefault, walang delay.
+        document.querySelectorAll('.mark-read-view').forEach(function (link) {
+            link.addEventListener('click', function () {
+                const id = this.dataset.markId;
+
+                fetch('<?= BASE_URL ?>/admin-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'mark_read_id=' + encodeURIComponent(id),
+                    keepalive: true
+                });
+            });
+        });
+    </script>
 
 </body>
 

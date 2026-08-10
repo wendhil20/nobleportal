@@ -3,6 +3,8 @@
 include_once ROOT_PATH . "/network/connect.php";
 
 $userStatus = null;
+$unreadNotifCount = 0;
+
 if (isset($_SESSION['user_id'])) {
     $stmt = $conn->prepare("SELECT status FROM nobleuser_employee_information WHERE user_id = ? ORDER BY id DESC LIMIT 1");
     $stmt->bind_param("i", $_SESSION['user_id']);
@@ -10,7 +12,18 @@ if (isset($_SESSION['user_id'])) {
     $row = $stmt->get_result()->fetch_assoc();
     $userStatus = $row['status'] ?? null;
     $stmt->close();
+
+    // Unread notifications count para sa employee/user side lang
+    // (recipient_type = 'user'), para sa red dot sa "Notification System" link.
+    $stmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM nobleportalnotification WHERE for_user_id = ? AND recipient_type = 'user' AND is_read = 0");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $countRow = $stmt->get_result()->fetch_assoc();
+    $unreadNotifCount = (int) ($countRow['cnt'] ?? 0);
+    $stmt->close();
 }
+
+$isApproved = strtoupper($userStatus ?? '') === 'APPROVED';
 ?>
 
 <!-- ==== DESKTOP SIDEBAR ==== -->
@@ -51,10 +64,17 @@ if (isset($_SESSION['user_id'])) {
                 class="w-8 h-8 rounded-full bg-[#A9822C] text-white flex items-center justify-center text-[11px] font-semibold shrink-0 relative">
                 <?= isset($_SESSION['first_name']) ? strtoupper(substr($_SESSION['first_name'], 0, 1) . substr($_SESSION['last_name'] ?? '', 0, 1)) : 'NH' ?>
 
-                <?php if (strtoupper($userStatus ?? '') === 'APPROVED'): ?>
+                <?php if ($isApproved): ?>
                     <span
-                        class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white flex items-center justify-center">
+                        class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white flex items-center justify-center"
+                        title="Verified">
                         <i class="fa-solid fa-check text-[7px] text-white"></i>
+                    </span>
+                <?php else: ?>
+                    <span
+                        class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-gray-400 border-2 border-white flex items-center justify-center"
+                        title="Unverified">
+                        <i class="fa-solid fa-exclamation text-[7px] text-white"></i>
                     </span>
                 <?php endif; ?>
             </div>
@@ -90,13 +110,24 @@ if (isset($_SESSION['user_id'])) {
 
         </div>
 
-        <p class="px-3.5 pb-2 text-[10px] font-semibold tracking-[0.14em] uppercase text-[#9AA2AA]">Settings</p>
+        <p class="px-3.5 pb-2 mt-3 text-[10px] font-semibold tracking-[0.14em] uppercase text-[#9AA2AA]">Settings</p>
 
         <div class="flex flex-col gap-0.5">
-             <a href="<?= BASE_URL ?>/notification"
+            <a href="<?= BASE_URL ?>/notification"
                 class="nav-link flex items-center gap-3 pl-3 pr-3.5 py-2.5 border-l-[3px] border-transparent rounded-r-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
-                <i class="fa-solid fa-message text-black"></i>
-                 Notification System
+                <span class="relative shrink-0">
+                    <i class="fa-solid fa-message text-black"></i>
+                    <?php if ($unreadNotifCount > 0): ?>
+                        <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
+                    <?php endif; ?>
+                </span>
+                Notification System
+                <?php if ($unreadNotifCount > 0): ?>
+                    <span
+                        class="ml-auto text-[10px] font-semibold text-white bg-red-500 rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                        <?= $unreadNotifCount > 9 ? '9+' : $unreadNotifCount ?>
+                    </span>
+                <?php endif; ?>
             </a>
 
             <a href="<?= BASE_URL ?>/page-5"
@@ -142,7 +173,7 @@ if (isset($_SESSION['user_id'])) {
             </span>
         </a>
 
-        <a href="<?= BASE_URL ?>/controlpanel/employees/"
+        <a href="<?= BASE_URL ?>/page-2"
             class="bottom-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[#9AA2AA]">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -151,7 +182,7 @@ if (isset($_SESSION['user_id'])) {
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            <span class="text-[10px] font-medium">Employees</span>
+            <span class="text-[10px] font-medium">Employee Status</span>
         </a>
 
         <!-- Center action button (TikTok Shop style raised icon) -->
@@ -168,9 +199,14 @@ if (isset($_SESSION['user_id'])) {
             <span class="text-[10px] font-medium text-[#9AA2AA] mt-6">Projects</span>
         </a>
 
-        <a href="<?= BASE_URL ?>/controlpanel/reports/"
-            class="bottom-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[#9AA2AA]">
-            <i class="fa-solid fa-message"></i>
+        <a href="<?= BASE_URL ?>/notification"
+            class="bottom-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[#9AA2AA] relative">
+            <span class="relative">
+                <i class="fa-solid fa-message"></i>
+                <?php if ($unreadNotifCount > 0): ?>
+                    <span class="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
+                <?php endif; ?>
+            </span>
             <span class="text-[10px] font-medium">System Notif</span>
         </a>
 
@@ -197,10 +233,17 @@ if (isset($_SESSION['user_id'])) {
             class="w-10 h-10 rounded-full bg-[#A9822C] text-white flex items-center justify-center text-[13px] font-semibold shrink-0 relative">
             <?= isset($_SESSION['first_name']) ? strtoupper(substr($_SESSION['first_name'], 0, 1) . substr($_SESSION['last_name'] ?? '', 0, 1)) : 'NH' ?>
 
-            <?php if (strtoupper($userStatus ?? '') === 'APPROVED'): ?>
+            <?php if ($isApproved): ?>
                 <span
-                    class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-black flex items-center justify-center">
+                    class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-black flex items-center justify-center"
+                    title="Verified">
                     <i class="fa-solid fa-check text-[8px] text-white"></i>
+                </span>
+            <?php else: ?>
+                <span
+                    class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gray-400 border-2 border-black flex items-center justify-center"
+                    title="Unverified">
+                    <i class="fa-solid fa-exclamation text-[8px] text-white"></i>
                 </span>
             <?php endif; ?>
         </div>
@@ -229,7 +272,7 @@ if (isset($_SESSION['user_id'])) {
                 <i class="fa-solid fa-tachograph-digital w-[18px] text-center"></i>
                 Create Employee Profile
             </a>
-            <a href="<?= BASE_URL ?>/controlpanel/employees/"
+            <a href="<?= BASE_URL ?>/page-2"
                 class="flex items-center gap-3 pl-3 pr-3.5 py-3 rounded-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -244,6 +287,22 @@ if (isset($_SESSION['user_id'])) {
 
         <p class="px-3.5 pt-4 pb-2 text-[10px] font-semibold tracking-[0.14em] uppercase text-[#9AA2AA]">Settings</p>
         <div class="flex flex-col gap-0.5">
+            <a href="<?= BASE_URL ?>/notification"
+                class="flex items-center gap-3 pl-3 pr-3.5 py-3 rounded-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
+                <span class="relative shrink-0">
+                    <i class="fa-solid fa-message w-[18px] text-center"></i>
+                    <?php if ($unreadNotifCount > 0): ?>
+                        <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
+                    <?php endif; ?>
+                </span>
+                Notification System
+                <?php if ($unreadNotifCount > 0): ?>
+                    <span
+                        class="ml-auto text-[10px] font-semibold text-white bg-red-500 rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                        <?= $unreadNotifCount > 9 ? '9+' : $unreadNotifCount ?>
+                    </span>
+                <?php endif; ?>
+            </a>
             <a href="<?= BASE_URL ?>/page-5"
                 class="flex items-center gap-3 pl-3 pr-3.5 py-3 rounded-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
                 <i class="fa-solid fa-circle-info w-[18px] text-center"></i>
@@ -253,7 +312,7 @@ if (isset($_SESSION['user_id'])) {
 
         <div class="mt-auto pt-4">
             <div class="border-t border-black/5 mb-3"></div>
-            <a href="<?= BASE_URL ?>/logout/"
+            <a href="<?= BASE_URL ?>/logout"
                 class="flex items-center gap-3 pl-3 pr-3.5 py-3 rounded-md text-sm font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 hover:pl-4 transition-all duration-200">
                 <i class="fa-solid fa-right-from-bracket"></i>
                 Log out
