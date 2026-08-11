@@ -69,6 +69,7 @@ $adminRoutes = [
     'save-employment',
     'departmentcrud',
     'view-information',
+    'hr-flagdocument' ,
 
     //hr page 2
     'hrpage-2',
@@ -107,6 +108,7 @@ $routes = [
     'save-employment'                           => 'controlpanel/hr/page-1/backend/save_employment.php',
     'departmentcrud'                            => 'controlpanel/hr/page-1/backend/department_crud.php',
     'view-information'                          => 'controlpanel/hr/page-1/viewinformation.php',
+    'hr-flagdocument'                           => 'controlpanel/hr/page-1/backend/hr-flagdocument.php',
 
     //hr page 2
     'hrpage-2'                                  => 'controlpanel/hr/page-2/registeraccount.php',
@@ -120,11 +122,14 @@ $routes = [
     //notification
     'notification'                              => 'ui/notification/notification.php',
     'notification-handler'                      => 'ui/notification/backend/employee-notification-actions.php',
+    'notification-count'                        => 'ui/navigation/backend/notification-count.php',
+    'notification-poll'                         => 'ui/notification/backend/employee-notification-poll.php',
 
     //page 1
     'page-1'                                    => 'ui/page/page-1/main.php',
     'page-1-personalhandler'                    => 'ui/page/page-1/backend/personalhandler.php',
     'page-1-viewdocument'                       => 'ui/page/page-1/backend/page-1-viewdocument.php',
+    'page-1-reupload'                           => 'ui/page/page-1/backend/page-1-reupload.php',
 
     //page 2
     'page-2'                                    => 'ui/page/page-2/employee-main.php',

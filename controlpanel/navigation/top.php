@@ -88,7 +88,7 @@ function navIconClass($path)
         <div class="min-w-0">
             <p
                 class="font-['Barlow_Condensed'] font-semibold text-[13px] leading-tight tracking-[0.06em] uppercase text-white truncate">
-                <span class="text-amber-500">Noble</span>home
+                <span class="text-amber-500">Noble</span>home ADMIN
             </p>
             <p
                 class="font-['Barlow_Condensed'] font-medium text-[10px] leading-tight tracking-[0.16em] uppercase text-white truncate mt-0.5">

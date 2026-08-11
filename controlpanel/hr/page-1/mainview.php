@@ -60,7 +60,7 @@ if (!empty($documentTypes)) {
 }
 
 $today = date('F j, Y');
-$fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
+$fileNo = $info['reference_number'] ?? ('HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -247,7 +247,7 @@ $fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
                                             <span class="text-[10.5px] font-bold text-[#B7AF9C] tracking-[0.04em]">— NONE —</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="py-2.5 text-right w-16">
+                                    <td class="py-2.5 pr-2 text-right w-16">
                                         <?php if ($hasFiles): ?>
                                             <a href="<?= BASE_URL ?>/hr-viewdocument?id=<?= (int) $files[0]['id'] ?>" target="_blank"
                                                 class="text-[11px] font-semibold text-[#0B2540] hover:text-[#A9822C] underline underline-offset-2">
@@ -255,11 +255,19 @@ $fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
                                             </a>
                                         <?php endif; ?>
                                     </td>
+                                    <td class="py-2.5 text-right w-16">
+                                        <?php if ($hasFiles): ?>
+                                            <button type="button" data-flag-toggle="<?= htmlspecialchars($key) ?>"
+                                                class="text-[11px] font-semibold text-[#A32D2D] hover:text-[#7A1F1F] underline underline-offset-2">
+                                                Flag
+                                            </button>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                                 <?php if ($hasFiles && count($files) > 1): ?>
                                 <tr class="border-b border-[#E4E1D8]">
                                     <td></td>
-                                    <td colspan="3" class="pb-2.5">
+                                    <td colspan="4" class="pb-2.5">
                                         <ul class="space-y-1">
                                             <?php foreach (array_slice($files, 1) as $file): ?>
                                                 <li class="flex items-center justify-between text-[11px] text-[#6B6350]">
@@ -268,6 +276,34 @@ $fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
                                                 </li>
                                             <?php endforeach; ?>
                                         </ul>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
+                                <?php if ($hasFiles): ?>
+                                <!-- ==== Inline "Flag for Re-upload" reason form (hidden by default, toggled via JS) ==== -->
+                                <tr class="hidden border-b border-[#E4E1D8] bg-[#FBEEEE]" data-flag-row="<?= htmlspecialchars($key) ?>">
+                                    <td></td>
+                                    <td colspan="4" class="py-3 pr-3">
+                                        <form action="<?= BASE_URL ?>/hr-flagdocument" method="post" class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                            <input type="hidden" name="user_id" value="<?= (int) $targetUser['id'] ?>">
+                                            <input type="hidden" name="document_type" value="<?= htmlspecialchars($key) ?>">
+                                            <input type="text" name="reason" required maxlength="255"
+                                                placeholder="Reason (e.g. blurred, wrong document, expired)"
+                                                class="flex-1 w-full bg-white border border-[#EACACA] rounded-sm px-2.5 py-1.5 text-[12px] outline-none focus:border-[#A32D2D]">
+                                            <div class="flex gap-2 shrink-0">
+                                                <button type="submit"
+                                                    class="px-3 py-1.5 bg-[#A32D2D] text-white text-[11.5px] font-semibold rounded-sm hover:bg-[#7A1F1F] transition-colors whitespace-nowrap">
+                                                    Send Request
+                                                </button>
+                                                <button type="button" data-flag-cancel="<?= htmlspecialchars($key) ?>"
+                                                    class="px-3 py-1.5 bg-transparent text-[#6B6350] text-[11.5px] font-medium hover:text-[#241F14] whitespace-nowrap">
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </form>
+                                        <p class="text-[10.5px] text-[#A32D2D]/80 mt-1.5">
+                                            Sending this will remove the current file(s) for this document and set the 201 File back to <span class="font-semibold">Rejected</span> so the employee can re-upload.
+                                        </p>
                                     </td>
                                 </tr>
                                 <?php endif; ?>
@@ -290,6 +326,26 @@ $fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
 
         </div>
     </div>
+
+    <script>
+        (function () {
+            document.querySelectorAll('[data-flag-toggle]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const key = btn.dataset.flagToggle;
+                    const row = document.querySelector('[data-flag-row="' + key + '"]');
+                    if (row) row.classList.toggle('hidden');
+                });
+            });
+
+            document.querySelectorAll('[data-flag-cancel]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const key = btn.dataset.flagCancel;
+                    const row = document.querySelector('[data-flag-row="' + key + '"]');
+                    if (row) row.classList.add('hidden');
+                });
+            });
+        })();
+    </script>
 
 </body>
 

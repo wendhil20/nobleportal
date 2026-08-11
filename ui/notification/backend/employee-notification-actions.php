@@ -12,7 +12,13 @@ if ($userId <= 0) {
     return;
 }
 
-$redirectTo = BASE_URL . "/notification";
+$isAjax = (
+    (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+    || (isset($_POST['ajax']) && $_POST['ajax'] === '1')
+);
+
+$redirectTo   = BASE_URL . "/notification";
+$responseLink = null;
 
 if (isset($_POST['mark_read_id'])) {
     $notifId = (int) $_POST['mark_read_id'];
@@ -36,7 +42,8 @@ if (isset($_POST['mark_read_id'])) {
     $linkStmt->close();
 
     if (!empty($row['link'])) {
-        $redirectTo = $row['link'];
+        $redirectTo   = $row['link'];
+        $responseLink = $row['link'];
     }
 }
 
@@ -47,6 +54,12 @@ if (isset($_POST['mark_all_read'])) {
     $stmt->bind_param("i", $userId);
     $stmt->execute();
     $stmt->close();
+}
+
+if ($isAjax) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'link' => $responseLink]);
+    exit;
 }
 
 header("Location: " . $redirectTo);

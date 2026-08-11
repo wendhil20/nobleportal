@@ -2,16 +2,55 @@
 //personalhandler.php
 include ROOT_PATH . "/network/connect.php";
 
+$isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+
+function jsonResponse($data, $httpCode = 200) {
+    http_response_code($httpCode);
+    header('Content-Type: application/json');
+    echo json_encode($data);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    if ($isAjax) {
+        jsonResponse(['success' => false, 'message' => 'Invalid request method.'], 405);
+    }
     header("Location: " . BASE_URL . "/page-1");
     exit;
 }
 
-function redirectWithError($msg, $userId, $old = []) {
+function redirectWithError($msg, $userId, $old = [], $isAjax = false) {
+    if ($isAjax) {
+        jsonResponse(['success' => false, 'message' => $msg], 422);
+    }
     $_SESSION['form_error'] = $msg;
     $_SESSION['old_input']  = $old;
     header("Location: " . BASE_URL . "/page-1");
     exit;
+}
+
+// Bumubuo ng bagong reference number sa format na NHCC-HR{YEAR}-{4-digit sequence},
+function generateReferenceNumber($conn) {
+    $year = date('Y');
+    $prefix = "NHCC-HR{$year}-";
+    $likePattern = $prefix . '%';
+
+    $stmt = $conn->prepare(
+        "SELECT reference_number FROM nobleuser_employee_information
+         WHERE reference_number LIKE ? ORDER BY reference_number DESC LIMIT 1 FOR UPDATE"
+    );
+    $stmt->bind_param("s", $likePattern);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $nextSeq = 1;
+    if (!empty($row['reference_number'])) {
+        $lastSeq = (int) substr($row['reference_number'], strlen($prefix));
+        $nextSeq = $lastSeq + 1;
+    }
+
+    return $prefix . str_pad((string) $nextSeq, 4, '0', STR_PAD_LEFT);
 }
 
 $userId = (int) ($_POST['user_id'] ?? 0);
@@ -33,19 +72,19 @@ $oldInput = $_POST; // para ma-restore kung mag-error (files hindi na-preserve, 
 
 // ==== Validation: Step 1 & 2 ====
 if ($userId <= 0) {
-    redirectWithError("Missing employee reference.", $userId, $oldInput);
+    redirectWithError("Missing employee reference.", $userId, $oldInput, $isAjax);
 }
 if ($firstName === '' || $lastName === '' || $birthdate === '' || $age <= 0 || $birthplace === '') {
-    redirectWithError("Please complete all required fields in Step 1.", $userId, $oldInput);
+    redirectWithError("Please complete all required fields in Step 1.", $userId, $oldInput, $isAjax);
 }
 if (!in_array($gender, ['MALE', 'FEMALE'], true)) {
-    redirectWithError("Please select a gender.", $userId, $oldInput);
+    redirectWithError("Please select a gender.", $userId, $oldInput, $isAjax);
 }
 if (!in_array($maritalStatus, ['SINGLE', 'MARRIED', 'WIDOWED', 'SEPARATED', 'DIVORCED'], true)) {
-    redirectWithError("Please select a valid marital status.", $userId, $oldInput);
+    redirectWithError("Please select a valid marital status.", $userId, $oldInput, $isAjax);
 }
 if ($address === '' || $religion === '' || $citizenship === '') {
-    redirectWithError("Please complete all required fields in Step 2.", $userId, $oldInput);
+    redirectWithError("Please complete all required fields in Step 2.", $userId, $oldInput, $isAjax);
 }
 
 // ==== Confirm existing employee account ====
@@ -56,7 +95,7 @@ $exists = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$exists) {
-    redirectWithError("Employee account not found.", $userId, $oldInput);
+    redirectWithError("Employee account not found.", $userId, $oldInput, $isAjax);
 }
 
 // ==== Block edits while PENDING review ====
@@ -71,7 +110,7 @@ $stmt->close();
 $isResubmission = !empty($currentStatusRow['status']) && $currentStatusRow['status'] === 'REJECTED';
 
 if (!empty($currentStatusRow['status']) && $currentStatusRow['status'] === 'PENDING') {
-    redirectWithError("Your 201 File is pending review and cannot be edited right now.", $userId, $oldInput);
+    redirectWithError("Your 201 File is pending review and cannot be edited right now.", $userId, $oldInput, $isAjax);
 }
 
 // ==== Validation: Step 3 documents ====
@@ -111,7 +150,7 @@ foreach ($documentTypes as $key => $doc) {
 }
 
 if (!empty($missingRequired)) {
-    redirectWithError("Missing required documents: " . implode(', ', $missingRequired), $userId, $oldInput);
+    redirectWithError("Missing required documents: " . implode(', ', $missingRequired), $userId, $oldInput, $isAjax);
 }
 
 // ==== Everything valid — proceed sa transaction ====
@@ -119,8 +158,6 @@ $conn->begin_transaction();
 
 try {
     // -- Save/update Step 1 & 2 info --
-    // Bawat submit (bago man o edit) ay mapupunta sa PENDING para ma-review
-    // ulit ng HR — kailangan i-reset ang dating review kapag nag-resubmit.
     $stmt = $conn->prepare("SELECT id FROM nobleuser_employee_information WHERE user_id = ? LIMIT 1");
     $stmt->bind_param("i", $userId);
     $stmt->execute();
@@ -134,9 +171,6 @@ try {
             marital_status = ?, present_address = ?, religion = ?, citizenship = ?,
             status = 'PENDING', review_notes = NULL, reviewed_by = NULL, reviewed_at = NULL
             WHERE user_id = ?");
-        // Order: firstName(s), middleName(s), lastName(s), extensionName(s),
-        //        birthdate(s), age(i), gender(s), birthplace(s),
-        //        maritalStatus(s), address(s), religion(s), citizenship(s), userId(i)
         $stmt->bind_param(
             "sssssissssssi",
             $firstName, $middleName, $lastName, $extensionName,
@@ -147,15 +181,14 @@ try {
         $stmt->execute();
         $stmt->close();
     } else {
+        $referenceNumber = generateReferenceNumber($conn);
+
         $stmt = $conn->prepare("INSERT INTO nobleuser_employee_information
-            (user_id, first_name, middle_name, last_name, extension_name, birthdate, age, gender, birthplace, marital_status, present_address, religion, citizenship, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')");
-        // Order: userId(i), firstName(s), middleName(s), lastName(s), extensionName(s),
-        //        birthdate(s), age(i), gender(s), birthplace(s),
-        //        maritalStatus(s), address(s), religion(s), citizenship(s)
+            (user_id, reference_number, first_name, middle_name, last_name, extension_name, birthdate, age, gender, birthplace, marital_status, present_address, religion, citizenship, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')");
         $stmt->bind_param(
-            "isssssissssss",
-            $userId, $firstName, $middleName, $lastName, $extensionName,
+            "issssssissssss",
+            $userId, $referenceNumber, $firstName, $middleName, $lastName, $extensionName,
             $birthdate, $age, $gender, $birthplace,
             $maritalStatus, $address, $religion, $citizenship
         );
@@ -208,7 +241,6 @@ try {
 
         if (empty($filesForThisType)) continue;
 
-        // Single-file types: replace — tanggalin muna yung dating file + row
         if (!$isMultiple && ($existingDocCounts[$key] ?? 0) > 0) {
             $oldStmt = $conn->prepare("SELECT file_path FROM nobleuser_employee_documents WHERE user_id = ? AND document_type = ?");
             $oldStmt->bind_param("is", $userId, $key);
@@ -298,12 +330,6 @@ try {
         }
     }
 
-    // -- Notify HR Head na may bagong 201 File submission / resubmission na dapat i-review --
-    // Dapat tumugma ito sa access guard ng mainview.php: requireAccess('hr', 'head')
-    // kaya for_role = 'hr' AT for_position = 'head' — hindi lang basta role na 'hr',
-    // dahil ang mismong page ay 'hr' + 'head' lang ang pwedeng bumukas.
-    // NOTE: i-adjust ang halaga ng $notifLink kung iba ang route ng HR mainview.php mo
-    // (dati: /hrpage-1-mainview?id=... — palitan kung ibang path ang totoong route).
     $notifTitle = $isResubmission
         ? "201 File resubmitted for review"
         : "New 201 File submitted for review";
@@ -318,10 +344,19 @@ try {
     $notifStmt->close();
 
     $conn->commit();
+
+    $successMessage = $isResubmission
+        ? '201 File resubmitted successfully. It is now pending HR review.'
+        : '201 File submitted successfully. It is now pending HR review.';
+
+    if ($isAjax) {
+        jsonResponse(['success' => true, 'message' => $successMessage]);
+    }
+
     header("Location: " . BASE_URL . "/page-1?saved=1");
     exit;
 
 } catch (Exception $e) {
     $conn->rollback();
-    redirectWithError($e->getMessage(), $userId, $oldInput);
+    redirectWithError($e->getMessage(), $userId, $oldInput, $isAjax);
 }

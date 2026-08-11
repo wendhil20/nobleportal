@@ -74,7 +74,7 @@ function timeAgo($datetime)
                 </div>
 
                 <?php if ($unreadCount > 0): ?>
-                    <form action="<?= BASE_URL ?>/notification" method="post">
+                    <form action="<?= BASE_URL ?>/admin-notification" method="post">
                         <button type="submit" name="mark_all_read" value="1"
                             class="text-[12.5px] font-semibold text-[#0B2540] hover:text-[#A9822C] transition-colors">
                             Mark all as read

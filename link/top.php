@@ -11,9 +11,6 @@
 <!-- Sarili mong pinag-build na Tailwind CSS, hindi CDN script -->
 <link rel="stylesheet" href="<?= BASE_URL ?>/link/css/tailwind.min.css">
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/link/css/custom-icons.css">
-
-
 <link rel="icon" type="image/png" href="<?= BASE_URL ?>/icon/logo/logo.png">
 
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>

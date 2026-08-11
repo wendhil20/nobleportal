@@ -33,6 +33,16 @@ $stmt->execute();
 $info = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
+// Kunin ang tunay na reference number (hal. NHCC-HR2026-0001) mula sa
+// 201 File record — gaya ng ginagawa sa main.php — para magtugma ang
+// Ref No. sa dalawang page. Placeholder na lang kapag wala pang
+// naisumiteng 201 File.
+$stmt = $conn->prepare("SELECT reference_number FROM nobleuser_employee_information WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+$stmt->bind_param("i", $targetUserId);
+$stmt->execute();
+$refRow = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
 $employmentTypes = [
     'trainee'        => 'Trainee',
     'probationary'   => 'Probationary',
@@ -51,7 +61,7 @@ $employmentTypeColors = [
 $currentType = $info['employment_type'] ?? '';
 $typeColorClass = $employmentTypeColors[$currentType] ?? 'bg-[#F3F4F6] text-[#374151] border-[#E5E7EB]';
 
-$fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
+$fileNo = $refRow['reference_number'] ?? ('HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT));
 
 function formatPeso($value) {
     return $value !== null ? '₱' . number_format((float) $value, 2) : '—';
@@ -111,7 +121,8 @@ function formatPeso($value) {
                                 <?php if (!empty($info['picture'])): ?>
                                     <img src="<?= BASE_URL . '/' . htmlspecialchars($info['picture']) ?>"
                                         alt="Employee photo"
-                                        class="w-20 h-20 rounded-sm object-cover border border-[#D9D4C6]">
+                                        id="employeePhotoTrigger"
+                                        class="w-20 h-20 rounded-sm object-cover border border-[#D9D4C6] cursor-pointer hover:opacity-90 transition-opacity">
                                 <?php else: ?>
                                     <div class="w-20 h-20 rounded-sm bg-[#F5F3EC] border border-[#D9D4C6] flex items-center justify-center text-[#9AA2AA] text-[11px] text-center">
                                         No photo
@@ -162,11 +173,29 @@ function formatPeso($value) {
                                     </div>
                                     <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8]">
                                         <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Daily Rate</p>
-                                        <p class="salary-value text-[13.5px] text-[#241F14] leading-snug tracking-wider" data-value="<?= htmlspecialchars(formatPeso($info['daily_rate'] ?? null)) ?>">••••••••</p>
+                                        <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars(formatPeso($info['daily_rate'] ?? null)) ?></p>
+                                    </div>
+
+                                    <!-- Allowance breakdown -->
+                                    <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8]">
+                                        <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Load</p>
+                                        <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars(formatPeso($info['allowance_load'] ?? null)) ?></p>
+                                    </div>
+                                    <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8]">
+                                        <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Transportation</p>
+                                        <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars(formatPeso($info['allowance_transportation'] ?? null)) ?></p>
+                                    </div>
+                                    <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8]">
+                                        <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Meal</p>
+                                        <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars(formatPeso($info['allowance_meal'] ?? null)) ?></p>
+                                    </div>
+                                    <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8]">
+                                        <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0"><?= !empty($info['allowance_others_label']) ? htmlspecialchars($info['allowance_others_label']) : 'Others' ?></p>
+                                        <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars(formatPeso($info['allowance_others_amount'] ?? null)) ?></p>
                                     </div>
                                     <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8] last:border-b-0">
                                         <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Allowance</p>
-                                        <p class="salary-value text-[13.5px] text-[#241F14] leading-snug tracking-wider" data-value="<?= htmlspecialchars(formatPeso($info['allowance'] ?? null)) ?>">••••••••</p>
+                                        <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars(formatPeso($info['allowance'] ?? null)) ?></p>
                                     </div>
                                 </div>
                             </div>
@@ -271,6 +300,17 @@ function formatPeso($value) {
         </div>
     </main>
 
+    <!-- ===================== Photo Lightbox ===================== -->
+    <div id="photoLightbox" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div id="photoLightboxOverlay" class="absolute inset-0 bg-black/70"></div>
+        <div class="relative max-w-lg w-full">
+            <button type="button" id="closePhotoLightboxBtn"
+                class="absolute -top-10 right-0 text-white/80 hover:text-white text-2xl leading-none">&times;</button>
+            <img id="photoLightboxImg" src="" alt="Employee photo"
+                class="w-full max-h-[80vh] object-contain rounded-sm border border-white/10">
+        </div>
+    </div>
+
     <script>
         (function () {
             const toggleBtn = document.getElementById('toggleSalaryBtn');
@@ -293,6 +333,34 @@ function formatPeso($value) {
 
                 eyeIcon.innerHTML = revealed ? eyeClosedPath : eyeOpenPath;
                 label.textContent = revealed ? 'Hide' : 'Show';
+            });
+        })();
+    </script>
+
+    <script>
+        (function () {
+            const trigger = document.getElementById('employeePhotoTrigger');
+            if (!trigger) return;
+
+            const lightbox = document.getElementById('photoLightbox');
+            const lightboxImg = document.getElementById('photoLightboxImg');
+            const closeBtn = document.getElementById('closePhotoLightboxBtn');
+            const overlay = document.getElementById('photoLightboxOverlay');
+
+            function openLightbox() {
+                lightboxImg.src = trigger.src;
+                lightbox.classList.remove('hidden');
+            }
+            function closeLightbox() {
+                lightbox.classList.add('hidden');
+                lightboxImg.src = '';
+            }
+
+            trigger.addEventListener('click', openLightbox);
+            closeBtn.addEventListener('click', closeLightbox);
+            overlay.addEventListener('click', closeLightbox);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeLightbox();
             });
         })();
     </script>

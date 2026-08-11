@@ -31,16 +31,29 @@ function old($key, $old, $default = '')
 // ==== Document types config (Step 3) ====
 $documentTypes = require ROOT_PATH . "/ui/page/page-1/backend/document_types.php";
 
-// Kunin kung MARRIED ba (kung meron nang naka-save na info) + review status
-$stmt = $conn->prepare("SELECT marital_status, status, review_notes, first_name, middle_name, last_name, extension_name, birthdate, age, gender, birthplace, present_address, religion, citizenship FROM nobleuser_employee_information WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+// Kunin kung MARRIED ba (kung meron nang naka-save na info) + review status + reference number
+$stmt = $conn->prepare("SELECT reference_number, marital_status, status, review_notes, first_name, middle_name, last_name, extension_name, birthdate, age, gender, birthplace, present_address, religion, citizenship FROM nobleuser_employee_information WHERE user_id = ? ORDER BY id DESC LIMIT 1");
 $stmt->bind_param("i", $targetUserId);
 $stmt->execute();
 $existingInfo = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-// I-lock ang form (ipakita ang read-only view) kapag PENDING o APPROVED na ang review.
-// REJECTED lang dapat pabalik sa editable form para makapag-resubmit ang employee.
-$isLocked = !empty($existingInfo['status']) && in_array($existingInfo['status'], ['PENDING', 'APPROVED'], true);
+// ==== Kunin ang mga document na na-flag ng HR bilang "needs re-upload" ====
+
+$flaggedDocs = [];
+$stmt = $conn->prepare("SELECT document_type, reason FROM nobleuser_document_flags WHERE user_id = ? AND resolved_at IS NULL");
+$stmt->bind_param("i", $targetUserId);
+$stmt->execute();
+$res = $stmt->get_result();
+while ($row = $res->fetch_assoc()) {
+    $flaggedDocs[$row['document_type']] = $row['reason'];
+}
+$stmt->close();
+
+$isLocked = !empty($existingInfo['status']) && (
+    in_array($existingInfo['status'], ['PENDING', 'APPROVED'], true)
+    || ($existingInfo['status'] === 'REJECTED' && !empty($flaggedDocs))
+);
 
 $currentMarital = $old['marital_status'] ?? ($existingInfo['marital_status'] ?? '');
 
@@ -55,7 +68,10 @@ while ($row = $res->fetch_assoc()) {
 }
 $stmt->close();
 
-$fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
+// Gamitin ang tunay na reference number (hal. NHCC-HR2026-0001) kapag meron na
+// itong na-generate mula sa unang submission; kung wala pa (hindi pa nag-susumite),
+// ipakita na lang ang computed placeholder.
+$fileNo = $existingInfo['reference_number'] ?? ('HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT));
 ?>
 
 <!DOCTYPE html>
@@ -76,7 +92,7 @@ $fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
     <main class="md:pl-64 pt-6 pb-24 md:pb-10 px-4 md:px-8">
         <div class="max-w-2xl mx-auto">
 
-            <div class="bg-[#FCFBF8] border border-[#D9D4C6] rounded-sm shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div id="fileCard" class="bg-[#FCFBF8] border border-[#D9D4C6] rounded-sm shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
 
                 <!-- Letterhead -->
                 <div class="border-b-2 border-[#0B2540] px-6 md:px-8 pt-7 pb-5">
@@ -133,9 +149,14 @@ $fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
 
                     <!-- ==== Review Status Banner (PENDING / REJECTED lang; APPROVED may sariling formal seal na sa loob) ==== -->
                     <?php if (!empty($existingInfo['status'])): ?>
-                        <?php if ($existingInfo['status'] === 'PENDING'): ?>
+                        <?php if ($existingInfo['status'] === 'PENDING' && empty($flaggedDocs)): ?>
                             <p class="mb-5 text-sm text-[#8A6D1F] bg-[#FBF5E6] border border-[#E7D8B0] rounded-sm px-3.5 py-2.5">
                                 Your 201 File is pending review by HR. You cannot make changes while it is under review.
+                            </p>
+                        <?php elseif ($existingInfo['status'] === 'PENDING' && !empty($flaggedDocs)): ?>
+                            <p class="mb-5 text-sm text-[#8A6D1F] bg-[#FBF5E6] border border-[#E7D8B0] rounded-sm px-3.5 py-2.5">
+                                HR has requested a re-upload for one or more documents (see below). Your other information
+                                remains on file and does not need to be re-entered.
                             </p>
                         <?php elseif ($existingInfo['status'] === 'REJECTED'): ?>
                             <p class="mb-5 text-sm text-[#A32D2D] bg-[#FBEEEE] border border-[#EACACA] rounded-sm px-3.5 py-2.5">
@@ -146,163 +167,50 @@ $fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
                         <?php endif; ?>
                     <?php endif; ?>
 
+                    <!-- ==== Documents Needing Re-upload (independent sa overall status — lumalabas kahit locked/approved) ==== -->
+                    <?php if (!empty($flaggedDocs)): ?>
+                        <div class="mb-6 border border-[#EACACA] bg-[#FBEEEE] rounded-sm overflow-hidden" id="flaggedDocsWrapper">
+                            <div class="px-4 py-2.5 border-b border-[#EACACA] flex items-center gap-2" id="flaggedDocsHeader">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="text-[#A32D2D] shrink-0"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                                <p class="text-[12.5px] font-semibold text-[#A32D2D] tracking-[0.02em]" id="flaggedDocsCount">
+                                    HR requested re-upload for <?= count($flaggedDocs) ?> document<?= count($flaggedDocs) > 1 ? 's' : '' ?>
+                                </p>
+                            </div>
+                            <div class="divide-y divide-[#EACACA]" id="flaggedDocsList">
+                                <?php foreach ($flaggedDocs as $flagKey => $flagReason): ?>
+                                    <?php
+                                        $flagDocMeta = $documentTypes[$flagKey] ?? ['label' => ucwords(str_replace('_', ' ', $flagKey)), 'multiple' => false, 'max' => 1];
+                                    ?>
+                                    <div class="px-4 py-3" data-flag-doc="<?= htmlspecialchars($flagKey) ?>">
+                                        <div class="flex items-start justify-between gap-3 flex-wrap mb-2">
+                                            <div>
+                                                <p class="text-[13.5px] font-semibold text-[#241F14]"><?= htmlspecialchars($flagDocMeta['label']) ?></p>
+                                                <p class="text-[12px] text-[#A32D2D] mt-0.5">Reason: <?= htmlspecialchars($flagReason) ?></p>
+                                            </div>
+                                        </div>
+                                        <form action="<?= BASE_URL ?>/page-1-reupload" method="post" enctype="multipart/form-data"
+                                            class="flex flex-col sm:flex-row items-start sm:items-center gap-2" data-reupload-form>
+                                            <input type="hidden" name="document_type" value="<?= htmlspecialchars($flagKey) ?>">
+                                            <input type="file" name="document<?= !empty($flagDocMeta['multiple']) ? '[]' : '' ?>"
+                                                <?= !empty($flagDocMeta['multiple']) ? 'multiple' : '' ?>
+                                                accept=".jpg,.jpeg,.png,.webp,.pdf"
+                                                required
+                                                class="flex-1 w-full text-[12px] text-[#4A4636] file:mr-3 file:py-1.5 file:px-3 file:rounded-sm file:border-0 file:text-[11.5px] file:font-semibold file:bg-[#0B2540] file:text-white hover:file:bg-[#132F52]">
+                                            <button type="submit"
+                                                class="px-4 py-1.5 bg-[#0B2540] text-white text-[12px] font-semibold rounded-sm hover:bg-[#132F52] transition-colors shrink-0 whitespace-nowrap">
+                                                Upload
+                                            </button>
+                                        </form>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($isLocked): ?>
 
                         <!-- ==== LOCKED VIEW (read-only, walang edit habang PENDING/APPROVED) ==== -->
-                        <div>
-
-                            <?php if ($existingInfo['status'] === 'APPROVED'): ?>
-                                <!-- ==== Formal Verification Stamp ==== -->
-                                <div class="flex items-start justify-between gap-4 mb-6 pb-6 border-b border-dashed border-[#D9D4C6]">
-                                    <div class="min-w-0">
-                                        <p class="text-[10.5px] font-semibold tracking-[0.14em] uppercase text-[#8B8371] mb-1">
-                                            Status
-                                        </p>
-                                        <p class="text-[13px] text-[#4A4636] leading-relaxed max-w-md">
-                                            This record has been reviewed and confirmed accurate by Human Resources. It is now part
-                                            of the employee's official 201 File on record.
-                                        </p>
-                                        <?php if (!empty($existingInfo['review_notes'])): ?>
-                                            <p class="text-[12px] text-[#8B8371] mt-2 italic">
-                                                HR note: <?= htmlspecialchars($existingInfo['review_notes']) ?>
-                                            </p>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="border-2 text-[#1F6B3A] border-[#1F6B3A] rounded-sm px-4 py-1.5 rotate-[-2deg] select-none shrink-0">
-                                        <p class="font-serif font-bold text-[12px] tracking-[0.1em] uppercase leading-tight text-center">Verified<br>&amp; Approved</p>
-                                    </div>
-                                </div>
-                            <?php else: ?>
-                                <p class="text-sm text-[#6B6350] mb-6">
-                                    Your submitted information is being reviewed by HR. You'll be able to make changes again once it has
-                                    been approved or rejected.
-                                </p>
-                            <?php endif; ?>
-
-                            <div class="flex flex-col gap-6">
-
-                                <!-- SECTION: Personal Details -->
-                                <div>
-                                    <p class="text-[10.5px] font-bold tracking-[0.2em] uppercase text-[#A9822C] mb-3 pb-2 border-b-2 border-[#0B2540]">
-                                        I. Personal Details
-                                    </p>
-                                    <div class="flex flex-col">
-                                        <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8]">
-                                            <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Full Name</p>
-                                            <p class="text-[13.5px] text-[#241F14] leading-snug">
-                                                <?= htmlspecialchars(trim(($existingInfo['first_name'] ?? '') . ' ' . ($existingInfo['middle_name'] ?? '') . ' ' . ($existingInfo['last_name'] ?? '') . ' ' . ($existingInfo['extension_name'] ?? ''))) ?>
-                                            </p>
-                                        </div>
-                                        <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8]">
-                                            <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Birthdate / Age</p>
-                                            <p class="text-[13.5px] text-[#241F14] leading-snug">
-                                                <?= htmlspecialchars($existingInfo['birthdate'] ?? '') ?> (<?= htmlspecialchars($existingInfo['age'] ?? '') ?>)
-                                            </p>
-                                        </div>
-                                        <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8]">
-                                            <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Gender</p>
-                                            <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars($existingInfo['gender'] ?? '') ?></p>
-                                        </div>
-                                        <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8]">
-                                            <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Marital Status</p>
-                                            <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars($existingInfo['marital_status'] ?? '') ?></p>
-                                        </div>
-                                        <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8] last:border-b-0">
-                                            <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Birthplace</p>
-                                            <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars($existingInfo['birthplace'] ?? '') ?></p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- SECTION: Background -->
-                                <div>
-                                    <p class="text-[10.5px] font-bold tracking-[0.2em] uppercase text-[#A9822C] mb-3 pb-2 border-b-2 border-[#0B2540]">
-                                        II. Background
-                                    </p>
-                                    <div class="flex flex-col">
-                                        <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8]">
-                                            <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Religion</p>
-                                            <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars($existingInfo['religion'] ?? '') ?></p>
-                                        </div>
-                                        <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-[#E4E1D8] last:border-b-0">
-                                            <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Citizenship</p>
-                                            <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars($existingInfo['citizenship'] ?? '') ?></p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- SECTION: Address -->
-                                <div>
-                                    <p class="text-[10.5px] font-bold tracking-[0.2em] uppercase text-[#A9822C] mb-3 pb-2 border-b-2 border-[#0B2540]">
-                                        III. Address
-                                    </p>
-                                    <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2">
-                                        <p class="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#8B8371] sm:w-[38%] shrink-0">Present Complete Address</p>
-                                        <p class="text-[13.5px] text-[#241F14] leading-snug"><?= htmlspecialchars($existingInfo['present_address'] ?? '') ?></p>
-                                    </div>
-                                </div>
-
-                            </div>
-
-                            <?php if (!empty($uploadedDocs)): ?>
-                                <div class="mt-6 pt-5 border-t-2 border-[#0B2540]">
-                                    <details class="group/main">
-                                        <summary
-                                            class="flex items-center justify-between gap-2 cursor-pointer select-none list-none mb-3">
-                                            <span class="text-[10.5px] font-bold tracking-[0.2em] uppercase text-[#A9822C]">
-                                                IV. Submitted Documents
-                                                <span
-                                                    class="text-[#8B8371] normal-case font-medium tracking-normal">(<?= array_sum(array_map('count', $uploadedDocs)) ?>
-                                                    files)</span>
-                                            </span>
-                                            <span class="flex items-center gap-1 text-[11px] font-semibold text-[#0B2540]">
-                                                <span class="group-open/main:hidden">Show all</span>
-                                                <span class="hidden group-open/main:inline">Hide</span>
-                                                <svg xmlns="http://www.w3.org/2000/svg"
-                                                    class="w-3.5 h-3.5 transition-transform group-open/main:rotate-180" fill="none"
-                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </span>
-                                        </summary>
-
-                                        <div class="space-y-2">
-                                            <?php foreach ($uploadedDocs as $docKey => $docList): ?>
-                                                <details class="group border border-[#E4E1D8] rounded-sm overflow-hidden">
-                                                    <summary
-                                                        class="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px] font-semibold text-[#241F14] bg-[#F5F3EC] cursor-pointer select-none list-none">
-                                                        <span class="flex items-center gap-2">
-                                                            <?= htmlspecialchars($documentTypes[$docKey]['label'] ?? ucwords(str_replace('_', ' ', $docKey))) ?>
-                                                            <span
-                                                                class="text-[10px] font-mono font-semibold text-[#8B8371] bg-white border border-[#D9D4C6] rounded-full px-2 py-0.5">
-                                                                <?= count($docList) ?>
-                                                            </span>
-                                                        </span>
-                                                        <svg xmlns="http://www.w3.org/2000/svg"
-                                                            class="w-4 h-4 text-[#8B8371] transition-transform group-open:rotate-180 shrink-0"
-                                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                                        </svg>
-                                                    </summary>
-                                                    <ul class="space-y-1.5 px-3.5 py-3 bg-white">
-                                                        <?php foreach ($docList as $file): ?>
-                                                            <li
-                                                                class="flex items-center justify-between gap-2 text-[13px] text-[#4A4636] bg-[#F5F3EC] rounded-sm px-2.5 py-1.5">
-                                                                <span
-                                                                    class="truncate"><?= htmlspecialchars($file['original_filename']) ?></span>
-                                                                <a href="<?= BASE_URL ?>/page-1-viewdocument?id=<?= (int) $file['id'] ?>"
-                                                                    target="_blank"
-                                                                    class="text-[#0B2540] font-semibold hover:text-[#A9822C] underline underline-offset-2 shrink-0">View</a>
-                                                            </li>
-                                                        <?php endforeach; ?>
-                                                    </ul>
-                                                </details>
-                                            <?php endforeach; ?>
-                                        </div>
-                                    </details>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+                        <?php include ROOT_PATH . "/ui/page/page-1/step-4.php"; ?>
 
                     <?php else: ?>
 
@@ -347,49 +255,120 @@ $fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
     <!-- ==== Toast Notification ==== -->
     <div id="toastNotification"
         class="hidden fixed top-5 right-5 z-[60] max-w-sm w-full bg-[#FCFBF8] border border-[#CFE0CE] rounded-sm shadow-lg px-4 py-3.5 flex items-start gap-3 translate-x-4 opacity-0 transition-all duration-300">
-        <div class="w-5 h-5 rounded-full bg-[#F0F6EF] text-[#1F6B3A] flex items-center justify-center shrink-0 mt-0.5">
+        <div class="w-5 h-5 rounded-full bg-[#F0F6EF] text-[#1F6B3A] flex items-center justify-center shrink-0 mt-0.5" id="toastIconWrap">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
         </div>
-        <p class="text-sm text-[#241F14] font-medium flex-1">201 File information saved successfully.</p>
+        <p id="toastMessage" class="text-sm text-[#241F14] font-medium flex-1">201 File information saved successfully.</p>
         <button type="button" id="toastClose"
             class="text-[#8B8371] hover:text-[#241F14] shrink-0 leading-none">&times;</button>
     </div>
 
-    <?php if (isset($_GET['saved'])): ?>
-        <script>
-            (function () {
-                const toast = document.getElementById('toastNotification');
-                const closeBtn = document.getElementById('toastClose');
+    <!-- ==== AJAX Re-upload (real-time, walang page reload) ==== -->
+    <script>
+    (function () {
+        const toast = document.getElementById('toastNotification');
+        const toastMessage = document.getElementById('toastMessage');
+        const toastIconWrap = document.getElementById('toastIconWrap');
+        const closeBtn = document.getElementById('toastClose');
 
-                function showToast() {
-                    toast.classList.remove('hidden');
-                    requestAnimationFrame(function () {
-                        toast.classList.remove('translate-x-4', 'opacity-0');
-                    });
-                }
+        function showAjaxToast(message, isError) {
+            toastMessage.textContent = message;
 
-                function hideToast() {
-                    toast.classList.add('translate-x-4', 'opacity-0');
-                    setTimeout(function () {
-                        toast.classList.add('hidden');
-                    }, 300);
-                }
+            toast.classList.toggle('border-[#EACACA]', !!isError);
+            toast.classList.toggle('border-[#CFE0CE]', !isError);
+            toastIconWrap.classList.toggle('bg-[#FBEEEE]', !!isError);
+            toastIconWrap.classList.toggle('text-[#A32D2D]', !!isError);
+            toastIconWrap.classList.toggle('bg-[#F0F6EF]', !isError);
+            toastIconWrap.classList.toggle('text-[#1F6B3A]', !isError);
 
-                showToast();
-                setTimeout(hideToast, 4000);
-                closeBtn.addEventListener('click', hideToast);
+            toast.classList.remove('hidden');
+            requestAnimationFrame(function () {
+                toast.classList.remove('translate-x-4', 'opacity-0');
+            });
+            clearTimeout(showAjaxToast._t);
+            showAjaxToast._t = setTimeout(hideAjaxToast, 4000);
+        }
 
-                if (window.history.replaceState) {
-                    const url = new URL(window.location.href);
-                    url.searchParams.delete('saved');
-                    window.history.replaceState({}, document.title, url.pathname + url.search);
-                }
-            })();
-        </script>
-    <?php endif; ?>
+        function hideAjaxToast() {
+            toast.classList.add('translate-x-4', 'opacity-0');
+            setTimeout(function () { toast.classList.add('hidden'); }, 300);
+        }
+
+        closeBtn.addEventListener('click', hideAjaxToast);
+
+        function bindReuploadForms() {
+            document.querySelectorAll('[data-reupload-form]').forEach(function (form) {
+                if (form.dataset.bound === '1') return;
+                form.dataset.bound = '1';
+
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    const fileInput = form.querySelector('input[type="file"]');
+
+                    if (!fileInput.files || fileInput.files.length === 0) {
+                        return;
+                    }
+
+                    const originalBtnText = submitBtn.textContent;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Uploading...';
+
+                    const formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(function (res) {
+                            return res.json().then(function (data) {
+                                if (!res.ok || !data.success) {
+                                    throw new Error(data.message || 'Upload failed.');
+                                }
+                                return data;
+                            });
+                        })
+                        .then(function (data) {
+                            const docCard = form.closest('[data-flag-doc]');
+                            const list = document.getElementById('flaggedDocsList');
+                            const wrapper = document.getElementById('flaggedDocsWrapper');
+                            const countLabel = document.getElementById('flaggedDocsCount');
+
+                            if (docCard) docCard.remove();
+
+                            if (list && wrapper && countLabel) {
+                                const remaining = list.querySelectorAll('[data-flag-doc]').length;
+                                if (remaining === 0) {
+                                    wrapper.remove();
+                                } else {
+                                    countLabel.textContent = 'HR requested re-upload for ' + remaining + ' document' + (remaining > 1 ? 's' : '');
+                                }
+                            }
+
+                            showAjaxToast(data.message || 'Document re-uploaded successfully.');
+                        })
+                        .catch(function (err) {
+                            showAjaxToast(err.message || 'Something went wrong.', true);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalBtnText;
+                        });
+                });
+            });
+        }
+
+        // Pinapalabas para magamit ng ibang script blocks (hal. pagkatapos mag-swap ng #fileCard)
+        window.NHCC = window.NHCC || {};
+        window.NHCC.showToast = showAjaxToast;
+        window.NHCC.bindReuploadForms = bindReuploadForms;
+
+        bindReuploadForms();
+    })();
+    </script>
 
     <?php if (!$isLocked): ?>
         <script>
@@ -458,28 +437,6 @@ $fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
                         }
                     }
                     return true;
-                }
-
-                // ==== Certification agreement gate bago mag-submit ====
-                const agreementCheckbox = document.getElementById('agreement');
-                const agreementError = document.getElementById('agreementError');
-
-                if (agreementCheckbox) {
-                    form.addEventListener('submit', function (e) {
-                        if (!agreementCheckbox.checked) {
-                            e.preventDefault();
-                            agreementError.classList.remove('hidden');
-                            agreementCheckbox.closest('.border').classList.add('border-red-400');
-                            agreementCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    });
-
-                    agreementCheckbox.addEventListener('change', function () {
-                        if (agreementCheckbox.checked) {
-                            agreementError.classList.add('hidden');
-                            agreementCheckbox.closest('.border').classList.remove('border-red-400');
-                        }
-                    });
                 }
 
                 nextBtns.forEach(function (btn) {
@@ -725,13 +682,87 @@ $fileNo = 'HR-201-' . str_pad($targetUser['id'], 5, '0', STR_PAD_LEFT);
                 form.addEventListener('input', saveDraft);
                 form.addEventListener('change', saveDraft);
 
-                form.addEventListener('submit', function () {
-                    localStorage.removeItem(DRAFT_KEY);
+                // ==== Certification agreement gate + AJAX submit ====
+                const agreementCheckbox = document.getElementById('agreement');
+                const agreementError = document.getElementById('agreementError');
+                const submitBtn = document.getElementById('submitBtn');
+
+                function refreshFileCard() {
+                    return fetch(window.location.pathname)
+                        .then(function (res) { return res.text(); })
+                        .then(function (html) {
+                            const parser = new DOMParser();
+                            const newDoc = parser.parseFromString(html, 'text/html');
+                            const newCard = newDoc.getElementById('fileCard');
+                            const oldCard = document.getElementById('fileCard');
+                            if (newCard && oldCard) {
+                                oldCard.replaceWith(newCard);
+                                if (window.NHCC && window.NHCC.bindReuploadForms) {
+                                    window.NHCC.bindReuploadForms();
+                                }
+                            }
+                        });
+                }
+
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    if (agreementCheckbox && !agreementCheckbox.checked) {
+                        agreementError.classList.remove('hidden');
+                        agreementCheckbox.closest('.border').classList.add('border-red-400');
+                        agreementCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return;
+                    }
+
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return;
+                    }
+
+                    const originalBtnText = submitBtn.textContent;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Submitting...';
+
+                    const formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(function (res) {
+                            return res.json().then(function (data) {
+                                if (!res.ok || !data.success) {
+                                    throw new Error(data.message || 'Submission failed.');
+                                }
+                                return data;
+                            });
+                        })
+                        .then(function (data) {
+                            localStorage.removeItem(DRAFT_KEY);
+                            return refreshFileCard().then(function () {
+                                if (window.NHCC && window.NHCC.showToast) {
+                                    window.NHCC.showToast(data.message || '201 File information saved successfully.');
+                                }
+                            });
+                        })
+                        .catch(function (err) {
+                            if (window.NHCC && window.NHCC.showToast) {
+                                window.NHCC.showToast(err.message || 'Something went wrong.', true);
+                            }
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalBtnText;
+                        });
                 });
 
-                <?php if (!empty($old['marital_status']) || !empty($old['present_address']) || !empty($old['religion'])): ?>
-                    showStep(2);
-                <?php endif; ?>
+                if (agreementCheckbox) {
+                    agreementCheckbox.addEventListener('change', function () {
+                        if (agreementCheckbox.checked) {
+                            agreementError.classList.add('hidden');
+                            agreementCheckbox.closest('.border').classList.remove('border-red-400');
+                        }
+                    });
+                }
             })();
         </script>
     <?php endif; ?>

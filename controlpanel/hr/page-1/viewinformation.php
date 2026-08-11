@@ -124,9 +124,28 @@ $employmentTypes = [
                                 <p class="text-[15px] text-[#1B2733] font-medium"><?= $info['daily_rate'] !== null ? '₱' . number_format((float) $info['daily_rate'], 2) : '—' ?></p>
                             </div>
 
-                            <div>
-                                <p class="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#9AA2AA] mb-1">Allowance</p>
-                                <p class="text-[15px] text-[#1B2733] font-medium"><?= $info['allowance'] !== null ? '₱' . number_format((float) $info['allowance'], 2) : '—' ?></p>
+                            <!-- Allowance Breakdown -->
+                            <div class="sm:col-span-2">
+                                <p class="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#9AA2AA] mb-1">Allowance Breakdown</p>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <div>
+                                        <p class="text-[11px] text-[#9AA2AA]">Load</p>
+                                        <p class="text-[14px] text-[#1B2733] font-medium"><?= $info['allowance_load'] !== null ? '₱' . number_format((float) $info['allowance_load'], 2) : '—' ?></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[11px] text-[#9AA2AA]">Transportation</p>
+                                        <p class="text-[14px] text-[#1B2733] font-medium"><?= $info['allowance_transportation'] !== null ? '₱' . number_format((float) $info['allowance_transportation'], 2) : '—' ?></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[11px] text-[#9AA2AA]">Meal</p>
+                                        <p class="text-[14px] text-[#1B2733] font-medium"><?= $info['allowance_meal'] !== null ? '₱' . number_format((float) $info['allowance_meal'], 2) : '—' ?></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[11px] text-[#9AA2AA]"><?= !empty($info['allowance_others_label']) ? htmlspecialchars($info['allowance_others_label']) : 'Others' ?></p>
+                                        <p class="text-[14px] text-[#1B2733] font-medium"><?= $info['allowance_others_amount'] !== null ? '₱' . number_format((float) $info['allowance_others_amount'], 2) : '—' ?></p>
+                                    </div>
+                                </div>
+                                <p class="text-[12px] text-[#6B7785] mt-2">Total Allowance: <span class="font-semibold text-[#1B2733]"><?= $info['allowance'] !== null ? '₱' . number_format((float) $info['allowance'], 2) : '₱0.00' ?></span></p>
                             </div>
 
                             <div>
@@ -247,7 +266,7 @@ $employmentTypes = [
                 <!-- Compensation -->
                 <div>
                     <label class="block text-[13px] font-semibold text-[#1B2733] mb-2">Compensation</label>
-                    <div class="grid grid-cols-3 gap-2.5">
+                    <div class="grid grid-cols-2 gap-2.5">
                         <div>
                             <label class="block text-[11px] text-[#6B7785] mb-1">Salary</label>
                             <input type="number" step="0.01" min="0" name="salary" placeholder="e.g. 25000"
@@ -260,13 +279,45 @@ $employmentTypes = [
                                 value="<?= htmlspecialchars($info['daily_rate'] ?? '') ?>"
                                 class="w-full bg-white border border-[#D8DBDE] rounded-md px-3 py-2.5 text-[14px] outline-none focus:border-[#0B2540]">
                         </div>
+                    </div>
+                </div>
+
+                <!-- Allowance Breakdown -->
+                <div>
+                    <label class="block text-[13px] font-semibold text-[#1B2733] mb-2">Allowance</label>
+                    <div class="grid grid-cols-2 gap-2.5">
                         <div>
-                            <label class="block text-[11px] text-[#6B7785] mb-1">Allowance</label>
-                            <input type="number" step="0.01" min="0" name="allowance" placeholder="e.g. 1500"
-                                value="<?= htmlspecialchars($info['allowance'] ?? '') ?>"
+                            <label class="block text-[11px] text-[#6B7785] mb-1">Load</label>
+                            <input type="number" step="0.01" min="0" name="allowance_load" placeholder="0.00"
+                                value="<?= htmlspecialchars($info['allowance_load'] ?? '') ?>"
+                                class="allowance-part w-full bg-white border border-[#D8DBDE] rounded-md px-3 py-2.5 text-[14px] outline-none focus:border-[#0B2540]">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-[#6B7785] mb-1">Transportation</label>
+                            <input type="number" step="0.01" min="0" name="allowance_transportation" placeholder="0.00"
+                                value="<?= htmlspecialchars($info['allowance_transportation'] ?? '') ?>"
+                                class="allowance-part w-full bg-white border border-[#D8DBDE] rounded-md px-3 py-2.5 text-[14px] outline-none focus:border-[#0B2540]">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-[#6B7785] mb-1">Meal</label>
+                            <input type="number" step="0.01" min="0" name="allowance_meal" placeholder="0.00"
+                                value="<?= htmlspecialchars($info['allowance_meal'] ?? '') ?>"
+                                class="allowance-part w-full bg-white border border-[#D8DBDE] rounded-md px-3 py-2.5 text-[14px] outline-none focus:border-[#0B2540]">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-[#6B7785] mb-1">Others Amount</label>
+                            <input type="number" step="0.01" min="0" name="allowance_others_amount" placeholder="0.00"
+                                value="<?= htmlspecialchars($info['allowance_others_amount'] ?? '') ?>"
+                                class="allowance-part w-full bg-white border border-[#D8DBDE] rounded-md px-3 py-2.5 text-[14px] outline-none focus:border-[#0B2540]">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[11px] text-[#6B7785] mb-1">Specify Others</label>
+                            <input type="text" name="allowance_others_label" placeholder="e.g. Uniform allowance"
+                                value="<?= htmlspecialchars($info['allowance_others_label'] ?? '') ?>"
                                 class="w-full bg-white border border-[#D8DBDE] rounded-md px-3 py-2.5 text-[14px] outline-none focus:border-[#0B2540]">
                         </div>
                     </div>
+                    <p class="text-[12px] text-[#6B7785] mt-1.5">Total Allowance: <span id="allowanceTotalDisplay" class="font-semibold text-[#1B2733]">₱<?= number_format((float) ($info['allowance'] ?? 0), 2) ?></span></p>
                 </div>
 
                 <!-- Contact Information -->
@@ -428,6 +479,16 @@ $employmentTypes = [
                 picturePreview.src = URL.createObjectURL(file);
                 picturePreview.classList.remove('hidden');
             });
+
+            // ---------- Live allowance total preview ----------
+            const allowanceParts = document.querySelectorAll('.allowance-part');
+            const allowanceTotalDisplay = document.getElementById('allowanceTotalDisplay');
+            function updateAllowanceTotal() {
+                let total = 0;
+                allowanceParts.forEach(input => total += parseFloat(input.value) || 0);
+                allowanceTotalDisplay.textContent = '₱' + total.toFixed(2);
+            }
+            allowanceParts.forEach(input => input.addEventListener('input', updateAllowanceTotal));
 
             // ---------- Employment form submit ----------
             const employmentForm = document.getElementById('employmentForm');

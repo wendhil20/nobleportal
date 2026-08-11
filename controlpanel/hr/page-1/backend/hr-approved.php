@@ -47,5 +47,23 @@ if ($stmt->affected_rows === 0) {
 }
 $stmt->close();
 
+// ---------- Notify the employee (reuses existing nobleportalnotification table) ----------
+if ($action === 'approve') {
+    $notifTitle = '201 File Approved';
+    $notifMessage = 'Your 201 File has been reviewed and approved by HR.';
+} else {
+    $notifTitle = '201 File Rejected';
+    $notifMessage = 'Your 201 File was rejected by HR' . ($notes !== '' ? ': ' . $notes : '.') . ' Please review and resubmit.';
+}
+$notifLink = BASE_URL . '/page-1';
+
+$stmt = $conn->prepare(
+    "INSERT INTO nobleportalnotification (for_role, for_position, for_user_id, recipient_type, title, message, link, is_read, created_at)
+     VALUES (NULL, NULL, ?, 'user', ?, ?, ?, 0, NOW())"
+);
+$stmt->bind_param("isss", $userId, $notifTitle, $notifMessage, $notifLink);
+$stmt->execute();
+$stmt->close();
+
 header("Location: " . BASE_URL . "/hr-employees?id=" . $userId . "&reviewed=1");
 exit;

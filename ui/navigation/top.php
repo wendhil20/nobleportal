@@ -117,17 +117,14 @@ $isApproved = strtoupper($userStatus ?? '') === 'APPROVED';
                 class="nav-link flex items-center gap-3 pl-3 pr-3.5 py-2.5 border-l-[3px] border-transparent rounded-r-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
                 <span class="relative shrink-0">
                     <i class="fa-solid fa-message text-black"></i>
-                    <?php if ($unreadNotifCount > 0): ?>
-                        <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
-                    <?php endif; ?>
+                    <span id="navNotifDot"
+                        class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 border border-white <?= $unreadNotifCount > 0 ? '' : 'hidden' ?>"></span>
                 </span>
                 Notification System
-                <?php if ($unreadNotifCount > 0): ?>
-                    <span
-                        class="ml-auto text-[10px] font-semibold text-white bg-red-500 rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                        <?= $unreadNotifCount > 9 ? '9+' : $unreadNotifCount ?>
-                    </span>
-                <?php endif; ?>
+                <span id="navNotifBadge"
+                    class="ml-auto text-[10px] font-semibold text-white bg-red-500 rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 <?= $unreadNotifCount > 0 ? '' : 'hidden' ?>">
+                    <?= $unreadNotifCount > 9 ? '9+' : $unreadNotifCount ?>
+                </span>
             </a>
 
             <a href="<?= BASE_URL ?>/page-5"
@@ -203,9 +200,8 @@ $isApproved = strtoupper($userStatus ?? '') === 'APPROVED';
             class="bottom-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[#9AA2AA] relative">
             <span class="relative">
                 <i class="fa-solid fa-message"></i>
-                <?php if ($unreadNotifCount > 0): ?>
-                    <span class="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
-                <?php endif; ?>
+                <span id="bottomNavNotifDot"
+                    class="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-red-500 border border-white <?= $unreadNotifCount > 0 ? '' : 'hidden' ?>"></span>
             </span>
             <span class="text-[10px] font-medium">System Notif</span>
         </a>
@@ -291,17 +287,14 @@ $isApproved = strtoupper($userStatus ?? '') === 'APPROVED';
                 class="flex items-center gap-3 pl-3 pr-3.5 py-3 rounded-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
                 <span class="relative shrink-0">
                     <i class="fa-solid fa-message w-[18px] text-center"></i>
-                    <?php if ($unreadNotifCount > 0): ?>
-                        <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
-                    <?php endif; ?>
+                    <span id="drawerNotifDot"
+                        class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 border border-white <?= $unreadNotifCount > 0 ? '' : 'hidden' ?>"></span>
                 </span>
                 Notification System
-                <?php if ($unreadNotifCount > 0): ?>
-                    <span
-                        class="ml-auto text-[10px] font-semibold text-white bg-red-500 rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                        <?= $unreadNotifCount > 9 ? '9+' : $unreadNotifCount ?>
-                    </span>
-                <?php endif; ?>
+                <span id="drawerNotifBadge"
+                    class="ml-auto text-[10px] font-semibold text-white bg-red-500 rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 <?= $unreadNotifCount > 0 ? '' : 'hidden' ?>">
+                    <?= $unreadNotifCount > 9 ? '9+' : $unreadNotifCount ?>
+                </span>
             </a>
             <a href="<?= BASE_URL ?>/page-5"
                 class="flex items-center gap-3 pl-3 pr-3.5 py-3 rounded-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
@@ -358,5 +351,69 @@ $isApproved = strtoupper($userStatus ?? '') === 'APPROVED';
             });
             observer.observe(accountDrawer, { attributes: true, attributeFilter: ['class'] });
         }
+
+        <?php if (isset($_SESSION['user_id'])): ?>
+                // ==== Near-real-time unread notification count (polling every 10s) ====
+                (function () {
+                    const POLL_INTERVAL_MS = 5000;
+
+                    const dots = [
+                        document.getElementById('navNotifDot'),
+                        document.getElementById('bottomNavNotifDot'),
+                        document.getElementById('drawerNotifDot'),
+                    ].filter(Boolean);
+
+                    const badges = [
+                        document.getElementById('navNotifBadge'),
+                        document.getElementById('drawerNotifBadge'),
+                    ].filter(Boolean);
+
+                    function applyCount(count) {
+                        const hasUnread = count > 0;
+                        const label = count > 9 ? '9+' : String(count);
+
+                        dots.forEach(function (dot) {
+                            dot.classList.toggle('hidden', !hasUnread);
+                        });
+
+                        badges.forEach(function (badge) {
+                            badge.classList.toggle('hidden', !hasUnread);
+                            badge.textContent = label;
+                        });
+                    }
+
+                    function pollNotifCount() {
+                        fetch('<?= BASE_URL ?>/notification-count', {
+                            method: 'GET',
+                            headers: { 'Accept': 'application/json' },
+                            credentials: 'same-origin',
+                            cache: 'no-store' // ← idinagdag, para hindi kunin yung cached na browser response
+                        })
+                            .then(function (res) {
+                                if (!res.ok) throw new Error('Request failed: ' + res.status);
+                                return res.json();
+                            })
+                            .then(function (data) {
+                                if (typeof data.count === 'number') {
+                                    applyCount(data.count);
+                                }
+                            })
+                            .catch(function (err) {
+                                // Panandaliang debug log — pwede mong tanggalin ulit pag nakumpirma na
+                                console.error('[notifPoll]', err);
+                            });
+                    }
+
+                    setInterval(pollNotifCount, POLL_INTERVAL_MS);
+
+                    // Ire-refresh din agad kapag binalikan ng user ang tab (hal. galing
+                    // sa ibang app/window) para hindi na kailangang maghintay ng 10s.
+                    document.addEventListener('visibilitychange', function () {
+                        if (document.visibilityState === 'visible') {
+                            pollNotifCount();
+                        }
+                    });
+                })();
+        <?php endif; ?>
     }
 </script>

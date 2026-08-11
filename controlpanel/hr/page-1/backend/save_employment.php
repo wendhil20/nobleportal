@@ -22,7 +22,16 @@ $employmentType = trim($_POST['employment_type'] ?? '');
 
 $salary = ($_POST['salary'] ?? '') !== '' ? (float) $_POST['salary'] : null;
 $dailyRate = ($_POST['daily_rate'] ?? '') !== '' ? (float) $_POST['daily_rate'] : null;
-$allowance = ($_POST['allowance'] ?? '') !== '' ? (float) $_POST['allowance'] : null;
+
+// ---------- Allowance breakdown ----------
+$allowanceLoad = ($_POST['allowance_load'] ?? '') !== '' ? (float) $_POST['allowance_load'] : null;
+$allowanceTransportation = ($_POST['allowance_transportation'] ?? '') !== '' ? (float) $_POST['allowance_transportation'] : null;
+$allowanceMeal = ($_POST['allowance_meal'] ?? '') !== '' ? (float) $_POST['allowance_meal'] : null;
+$allowanceOthersLabel = trim($_POST['allowance_others_label'] ?? '');
+$allowanceOthersAmount = ($_POST['allowance_others_amount'] ?? '') !== '' ? (float) $_POST['allowance_others_amount'] : null;
+
+// Total allowance = sum of all parts (kept in `allowance` column for backward compat)
+$allowance = ($allowanceLoad ?? 0) + ($allowanceTransportation ?? 0) + ($allowanceMeal ?? 0) + ($allowanceOthersAmount ?? 0);
 
 $email = trim($_POST['email'] ?? '');
 $contactNumber = trim($_POST['contact_number'] ?? '');
@@ -46,6 +55,9 @@ if (!in_array($employmentType, $allowedTypes, true)) {
 }
 if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     respond(false, 'Please enter a valid email address.');
+}
+if ($allowanceOthersAmount !== null && $allowanceOthersAmount > 0 && $allowanceOthersLabel === '') {
+    respond(false, 'Please specify the "Others" allowance.');
 }
 
 // Confirm employee exists
@@ -154,16 +166,22 @@ if (!empty($_FILES['picture']['name']) && $_FILES['picture']['error'] === UPLOAD
 $stmt = $conn->prepare(
     "INSERT INTO nobleuser_employment_details
         (user_id, department_id, employment_type, salary, daily_rate, allowance,
+         allowance_load, allowance_transportation, allowance_meal, allowance_others_label, allowance_others_amount,
          email, contact_number, emergency_contact_name, emergency_contact_number, present_address,
          sss_number, philhealth_number, pagibig_number, tin_number,
          contract_file, picture, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE
         department_id = VALUES(department_id),
         employment_type = VALUES(employment_type),
         salary = VALUES(salary),
         daily_rate = VALUES(daily_rate),
         allowance = VALUES(allowance),
+        allowance_load = VALUES(allowance_load),
+        allowance_transportation = VALUES(allowance_transportation),
+        allowance_meal = VALUES(allowance_meal),
+        allowance_others_label = VALUES(allowance_others_label),
+        allowance_others_amount = VALUES(allowance_others_amount),
         email = VALUES(email),
         contact_number = VALUES(contact_number),
         emergency_contact_name = VALUES(emergency_contact_name),
@@ -178,8 +196,9 @@ $stmt = $conn->prepare(
         updated_at = NOW()"
 );
 $stmt->bind_param(
-    "iisdddsssssssssss",
+    "iisddddddsdsssssssssss",
     $userId, $departmentId, $employmentType, $salary, $dailyRate, $allowance,
+    $allowanceLoad, $allowanceTransportation, $allowanceMeal, $allowanceOthersLabel, $allowanceOthersAmount,
     $email, $contactNumber, $emergencyName, $emergencyNumber, $presentAddress,
     $sssNumber, $philhealthNumber, $pagibigNumber, $tinNumber,
     $contractPath, $picturePath
