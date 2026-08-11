@@ -12,10 +12,9 @@ $adminRole     = $_SESSION['admin_role'] ?? '';
 $adminPosition = $_SESSION['admin_position'] ?? null;
 
 // ==== Fetch notifications relevant to this admin ====
-// NOTE: for_user_id branch is scoped to recipient_type = 'admin' para hindi
-// makita ng admin yung mga notification na for_user_id man ay para talaga
-// sa employee/user side lang (recipient_type = 'user').
-$stmt = $conn->prepare("SELECT id, for_role, for_position, for_user_id, recipient_type, title, message, link, is_read, created_at
+
+$stmt = $conn->prepare("SELECT id, for_role, for_position, for_user_id, recipient_type, title, message, link, is_read, created_at,
+        TIMESTAMPDIFF(SECOND, created_at, NOW()) AS seconds_ago
     FROM nobleportalnotification
     WHERE (for_user_id = ? AND recipient_type = 'admin')
        OR (
@@ -35,15 +34,20 @@ foreach ($notifications as $n) {
     if ((int) $n['is_read'] === 0) $unreadCount++;
 }
 
-function timeAgo($datetime)
+/**
+ * Formats an elapsed-seconds count (from MySQL's TIMESTAMPDIFF) into a
+ * human-readable "time ago" string.
+ */
+function formatSecondsAgo(int $diff): string
 {
-    if (!$datetime) return '';
-    $diff = time() - strtotime($datetime);
+    if ($diff < 0) $diff = 0; // safety net in case of any residual drift
+
     if ($diff < 60) return 'Just now';
     if ($diff < 3600) return floor($diff / 60) . 'm ago';
     if ($diff < 86400) return floor($diff / 3600) . 'h ago';
     if ($diff < 604800) return floor($diff / 86400) . 'd ago';
-    return date('M j, Y', strtotime($datetime));
+
+    return date('M j, Y', time() - $diff);
 }
 ?>
 <!DOCTYPE html>
@@ -54,6 +58,26 @@ function timeAgo($datetime)
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notification System</title>
     <?php include ROOT_PATH . "/link/top.php"; ?>
+    <style>
+        /* thin scrollbar for the notification list */
+        .thin-scrollbar {
+            scrollbar-width: thin;               /* Firefox */
+            scrollbar-color: #D8DBDE transparent; /* Firefox */
+        }
+        .thin-scrollbar::-webkit-scrollbar {
+            width: 6px;                          /* Chrome/Safari/Edge */
+        }
+        .thin-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .thin-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #D8DBDE;
+            border-radius: 9999px;
+        }
+        .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #B9BEC4;
+        }
+    </style>
 </head>
 
 <body class="bg-[#F5F6F7] font-['Inter']">
@@ -65,9 +89,7 @@ function timeAgo($datetime)
 
             <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <div>
-                    <p class="font-['Barlow_Condensed'] font-semibold text-[13px] tracking-[0.16em] uppercase text-[#A9822C] mb-1">
-                        Settings
-                    </p>
+                
                     <h1 class="font-['Barlow_Condensed'] font-bold text-[26px] uppercase text-[#0B2540] leading-none">
                         Notification System
                     </h1>
@@ -94,7 +116,7 @@ function timeAgo($datetime)
                         <p class="text-[14px] text-[#6B7785] font-medium">You have no notifications yet.</p>
                     </div>
                 <?php else: ?>
-                    <ul class="divide-y divide-[#EDEFF1]">
+                    <ul class="divide-y divide-[#EDEFF1] max-h-[70vh] overflow-y-auto thin-scrollbar">
                         <?php foreach ($notifications as $n):
                             $isUnread = (int) $n['is_read'] === 0;
                             $href = !empty($n['link']) ? htmlspecialchars($n['link']) : null;
@@ -109,7 +131,7 @@ function timeAgo($datetime)
                                                 <?= htmlspecialchars($n['title'] ?: 'Notification') ?>
                                             </p>
                                             <span class="text-[11px] text-[#9AA2AA] shrink-0 whitespace-nowrap">
-                                                <?= htmlspecialchars(timeAgo($n['created_at'])) ?>
+                                                <?= htmlspecialchars(formatSecondsAgo((int) $n['seconds_ago'])) ?>
                                             </span>
                                         </div>
 

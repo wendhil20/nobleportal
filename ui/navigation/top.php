@@ -108,6 +108,17 @@ $isApproved = strtoupper($userStatus ?? '') === 'APPROVED';
                 Employment Status
             </a>
 
+            <a href="<?= BASE_URL ?>/page-3"
+                class="nav-link flex items-center gap-3 pl-3 pr-3.5 py-2.5 border-l-[3px] border-transparent rounded-r-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
+                <i class="fa-solid fa-file-circle-question text-black"></i>
+                Orientation
+            </a>
+
+            <a href="<?= BASE_URL ?>/page-4"
+                class="nav-link flex items-center gap-3 pl-3 pr-3.5 py-2.5 border-l-[3px] border-transparent rounded-r-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
+               <i class="fa-solid fa-file-pen"></i>
+                Resignation Request
+            </a>
         </div>
 
         <p class="px-3.5 pb-2 mt-3 text-[10px] font-semibold tracking-[0.14em] uppercase text-[#9AA2AA]">Settings</p>
@@ -127,7 +138,7 @@ $isApproved = strtoupper($userStatus ?? '') === 'APPROVED';
                 </span>
             </a>
 
-            <a href="<?= BASE_URL ?>/page-5"
+            <a href="<?= BASE_URL ?>/termandpolicy"
                 class="nav-link flex items-center gap-3 pl-3 pr-3.5 py-2.5 border-l-[3px] border-transparent rounded-r-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
                 <i class="fa-solid fa-circle-info text-black"></i>
                 Term & Policy
@@ -183,17 +194,12 @@ $isApproved = strtoupper($userStatus ?? '') === 'APPROVED';
         </a>
 
         <!-- Center action button (TikTok Shop style raised icon) -->
-        <a href="<?= BASE_URL ?>/controlpanel/projects/"
-            class="flex-1 flex flex-col items-center justify-center relative">
+        <a href="<?= BASE_URL ?>/page-3" class="flex-1 flex flex-col items-center justify-center relative">
             <span
                 class="absolute -top-5 w-12 h-12 rounded-full bg-[#A9822C] flex items-center justify-center shadow-md border-4 border-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#0B2540]" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="7" width="18" height="14" rx="2"></rect>
-                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                </svg>
+                <i class="fa-solid fa-file-circle-question"></i>
             </span>
-            <span class="text-[10px] font-medium text-[#9AA2AA] mt-6">Projects</span>
+            <span class="text-[10px] font-medium text-[#9AA2AA] mt-6">Orientation</span>
         </a>
 
         <a href="<?= BASE_URL ?>/notification"
@@ -279,6 +285,12 @@ $isApproved = strtoupper($userStatus ?? '') === 'APPROVED';
                 </svg>
                 Employees
             </a>
+
+            <a href="<?= BASE_URL ?>/page-3"
+                class="flex items-center gap-3 pl-3 pr-3.5 py-3 rounded-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
+                <i class="fa-solid fa-file-circle-question text-black"></i>
+                Orientation
+            </a>
         </div>
 
         <p class="px-3.5 pt-4 pb-2 text-[10px] font-semibold tracking-[0.14em] uppercase text-[#9AA2AA]">Settings</p>
@@ -296,7 +308,7 @@ $isApproved = strtoupper($userStatus ?? '') === 'APPROVED';
                     <?= $unreadNotifCount > 9 ? '9+' : $unreadNotifCount ?>
                 </span>
             </a>
-            <a href="<?= BASE_URL ?>/page-5"
+            <a href="<?= BASE_URL ?>/termandpolicy"
                 class="flex items-center gap-3 pl-3 pr-3.5 py-3 rounded-md text-sm font-medium text-[#4B5866] hover:text-[#0B2540] hover:bg-black/[0.03] transition-colors">
                 <i class="fa-solid fa-circle-info w-[18px] text-center"></i>
                 Term & Policy

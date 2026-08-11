@@ -59,7 +59,7 @@ $adminRoutes = [
     'admin-logout',
     'admin-notification',
 
-    //hr
+    //hr page 1
     'hrpage-1',
     'hr-employees',
     'hr-viewdocument',
@@ -69,11 +69,17 @@ $adminRoutes = [
     'save-employment',
     'departmentcrud',
     'view-information',
-    'hr-flagdocument' ,
+    'hr-flagdocument',
+    'hr-orientation',
 
     //hr page 2
     'hrpage-2',
     'registerprocess',
+
+    //hr page 4
+    'admin-resignation',
+    'admin-resignation-handler',
+
 ];
 
 if (in_array($request, $adminRoutes)) {
@@ -88,51 +94,71 @@ session_start();
 $routes = [
 
     //admin notification
-    'admin-notification'                        => 'controlpanel/notification/admin-notification.php',
-    'admin-notification-handler'                => 'controlpanel/notification/backend/admin-notification-handler.php',
+    'admin-notification'                                                 => 'controlpanel/notification/admin-notification.php',
+    'admin-notification-handler'                                         => 'controlpanel/notification/backend/admin-notification-handler.php',
 
     //admin
-    'admin-login'                               => 'controlpanel/auth/auth-1/login.php',
-    'admin-handler'                             => 'controlpanel/auth/auth-1/backend/handler.php',
-    'admin-register'                            => 'controlpanel/auth/auth-2/registerform.php',
-    'handler'                                   => 'controlpanel/auth/auth-2/backend/settings_handler.php',
-    'admin-logout'                              => 'controlpanel/auth/auth-1/logout.php',
+    'admin-login'                                                        => 'controlpanel/auth/auth-1/login.php',
+    'admin-handler'                                                      => 'controlpanel/auth/auth-1/backend/handler.php',
+    'admin-register'                                                     => 'controlpanel/auth/auth-2/registerform.php',
+    'handler'                                                            => 'controlpanel/auth/auth-2/backend/settings_handler.php',
+    'admin-logout'                                                       => 'controlpanel/auth/auth-1/logout.php',
 
-    //hr
-    'hrpage-1'                                  => 'controlpanel/hr/page-1/main.php',
-    'hr-employees'                              => 'controlpanel/hr/page-1/mainview.php',
-    'hr-viewdocument'                           => 'controlpanel/hr/page-1/viewdocument.php',
-    'employee_search'                           => 'controlpanel/hr/page-1/backend/ajax_employee_search.php',
-    'hr-approved'                               => 'controlpanel/hr/page-1/backend/hr-approved.php',
-    'hr-employeedetails'                        => 'controlpanel/hr/page-1/hr-employeedetails.php',
-    'save-employment'                           => 'controlpanel/hr/page-1/backend/save_employment.php',
-    'departmentcrud'                            => 'controlpanel/hr/page-1/backend/department_crud.php',
-    'view-information'                          => 'controlpanel/hr/page-1/viewinformation.php',
-    'hr-flagdocument'                           => 'controlpanel/hr/page-1/backend/hr-flagdocument.php',
+    //hr page 1
+    'hrpage-1'                                                           => 'controlpanel/hr/page-1/main.php',
+    'hr-employees'                                                       => 'controlpanel/hr/page-1/mainview.php',
+    'hr-viewdocument'                                                    => 'controlpanel/hr/page-1/viewdocument.php',
+    'employee_search'                                                    => 'controlpanel/hr/page-1/backend/ajax_employee_search.php',
+    'hr-approved'                                                        => 'controlpanel/hr/page-1/backend/hr-approved.php',
+    'hr-employeedetails'                                                 => 'controlpanel/hr/page-1/hr-employeedetails.php',
+    'save-employment'                                                    => 'controlpanel/hr/page-1/backend/save_employment.php',
+    'departmentcrud'                                                     => 'controlpanel/hr/page-1/backend/department_crud.php',
+    'view-information'                                                   => 'controlpanel/hr/page-1/viewinformation.php',
+    'hr-flagdocument'                                                    => 'controlpanel/hr/page-1/backend/hr-flagdocument.php',
+
 
     //hr page 2
-    'hrpage-2'                                  => 'controlpanel/hr/page-2/registeraccount.php',
-    'registerprocess'                           => 'controlpanel/hr/page-2/backend/register_process.php',
+    'hrpage-2'                                                           => 'controlpanel/hr/page-2/registeraccount.php',
+    'registerprocess'                                                    => 'controlpanel/hr/page-2/backend/register_process.php',
+
+    //hr page 3
+    'hr-orientation'                                                     => 'controlpanel/hr/page-3/hr-orientation.php',
+
+    //hr page 4
+    'admin-resignation'                                                  => 'controlpanel/hr/page-4/resignrequest.php',
+    'admin-resignation-handler'                                          => 'controlpanel/hr/page-4/backend/resignation-actions.php',
 
     //user
-    'login'                                     => 'ui/auth/login/index.php',
-    'login-process'                             => 'ui/auth/login/backend/loginprocess.php',
-    'logout'                                    => 'ui/auth/logout/logout.php',
+    'login'                                                              => 'ui/auth/login/index.php',
+    'login-process'                                                      => 'ui/auth/login/backend/loginprocess.php',
+    'logout'                                                             => 'ui/auth/logout/logout.php',
+
+    //regulation
+    'termandpolicy'                                                      => 'ui/regulation/termandpolicy.php',
 
     //notification
-    'notification'                              => 'ui/notification/notification.php',
-    'notification-handler'                      => 'ui/notification/backend/employee-notification-actions.php',
-    'notification-count'                        => 'ui/navigation/backend/notification-count.php',
-    'notification-poll'                         => 'ui/notification/backend/employee-notification-poll.php',
+    'notification'                                                       => 'ui/notification/notification.php',
+    'notification-handler'                                               => 'ui/notification/backend/employee-notification-actions.php',
+    'notification-count'                                                 => 'ui/navigation/backend/notification-count.php',
+    'notification-poll'                                                  => 'ui/notification/backend/employee-notification-poll.php',
 
     //page 1
-    'page-1'                                    => 'ui/page/page-1/main.php',
-    'page-1-personalhandler'                    => 'ui/page/page-1/backend/personalhandler.php',
-    'page-1-viewdocument'                       => 'ui/page/page-1/backend/page-1-viewdocument.php',
-    'page-1-reupload'                           => 'ui/page/page-1/backend/page-1-reupload.php',
+    'page-1'                                                             => 'ui/page/page-1/main.php',
+    'page-1-personalhandler'                                             => 'ui/page/page-1/backend/personalhandler.php',
+    'page-1-viewdocument'                                                => 'ui/page/page-1/backend/page-1-viewdocument.php',
+    'page-1-reupload'                                                    => 'ui/page/page-1/backend/page-1-reupload.php',
 
     //page 2
-    'page-2'                                    => 'ui/page/page-2/employee-main.php',
+    'page-2'                                                             => 'ui/page/page-2/employee-main.php',
+
+    //page 3
+    'page-3'                                                             => 'ui/page/page-3/orientation.php',
+
+    //page 4
+    'page-4'                                                             => 'ui/page/page-4/resign.php',
+    'resignation-handler'                                                => 'ui/page/page-4/backend/employee-resignation-actions.php',
+
+
 
 
 ];

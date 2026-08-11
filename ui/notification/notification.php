@@ -19,6 +19,26 @@ if ($userId <= 0) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notifications</title>
     <?php include ROOT_PATH . "/link/top.php"; ?>
+    <style>
+        /* thin scrollbar for the notification list */
+        .thin-scrollbar {
+            scrollbar-width: thin;               /* Firefox */
+            scrollbar-color: #D9D4C6 transparent; /* Firefox */
+        }
+        .thin-scrollbar::-webkit-scrollbar {
+            width: 6px;                          /* Chrome/Safari/Edge */
+        }
+        .thin-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .thin-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #D9D4C6;
+            border-radius: 9999px;
+        }
+        .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #C2BBA5;
+        }
+    </style>
 </head>
 
 <body class="bg-[#EDEAE1] font-['Inter']">
@@ -30,11 +50,9 @@ if ($userId <= 0) {
 
             <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <div>
-                    <p class="text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#A9822C] mb-1.5">
-                        Account
-                    </p>
+                    
                     <h1 class="font-serif font-normal text-[26px] text-[#0B2540] leading-tight">
-                        Notifications
+                        Notifications System
                     </h1>
                 </div>
 
@@ -42,7 +60,7 @@ if ($userId <= 0) {
             </div>
 
             <div class="bg-[#FCFBF8] border border-[#D9D4C6] rounded-sm overflow-hidden">
-                <div id="notif-list">
+                <div id="notif-list" class="max-h-[70vh] overflow-y-auto thin-scrollbar">
                     <div class="py-16 text-center">
                         <p class="text-[14px] text-[#6B7785] font-medium">Loading...</p>
                     </div>

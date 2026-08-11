@@ -2,9 +2,7 @@
 //navigation/top.php
 include ROOT_PATH . "/controlpanel/navigation/helpers/helpers.php";
 
-// ==== Unread notification count (para sa red dot sa sidebar) ====
-// Same AND-logic filter gaya ng ginamit sa notification.php: kailangan magmatch
-// yung role AT position (kung parehong naka-set), hindi sapat ang isa lang.
+
 $navUnreadNotifCount = 0;
 if (isset($conn)) {
     $navAdminId = $_SESSION['admin_id'] ?? 0;
@@ -28,26 +26,32 @@ if (isset($conn)) {
     $navNotifStmt->close();
 }
 
-// Determine current page for active-state highlighting
 if (!function_exists('isActive')) {
-    function isActive($path)
+    function isActive($paths)
     {
         $current = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $current = rtrim($current, '/');
-        $path = rtrim($path, '/');
-        if ($path === '') {
-            return false;
+
+        // pwede nang array ng paths o single string
+        $paths = is_array($paths) ? $paths : [$paths];
+
+        foreach ($paths as $path) {
+            $path = rtrim($path, '/');
+            if ($path === '')
+                continue;
+
+            if ($current === $path || substr($current, -strlen($path)) === $path) {
+                return true;
+            }
         }
-        // Works whether the app sits at the domain root or in a subfolder
-        // (e.g. /nobleportal/admin-register still matches "/admin-register")
-        return $current === $path || substr($current, -strlen($path)) === $path;
+        return false;
     }
 }
 
 // Reusable class builders so we don't repeat the ternaries everywhere
 function navLinkClass($path)
 {
-    return isActive($path)
+    return isActive($path)   // gagana na rin kahit array na yung ipasa mo
         ? 'group flex items-center gap-3 px-3 py-2.5 border-l-[3px] border-[#A9822C] rounded-r-lg bg-black/5 text-black transition-colors duration-150'
         : 'group flex items-center gap-3 px-3 py-2.5 border-l-[3px] border-transparent rounded-lg text-sm text-black/70 hover:bg-white/5 hover:text-black transition-colors duration-150';
 }
@@ -153,11 +157,22 @@ function navIconClass($path)
                     <span>Register Employee</span>
                 </a>
 
-                <a href="<?= BASE_URL ?>/hrpage-1" class="<?= navLinkClass('/hrpage-1') ?>">
+                <?php
+                $employee201Pages = ['/hrpage-1', '/hr-employees', '/hr-orientation', 'view-information'];
+                ?>
+                <a href="<?= BASE_URL ?>/hrpage-1" class="<?= navLinkClass($employee201Pages) ?>">
                     <span class="flex items-center justify-center w-5 h-5 shrink-0">
-                        <i class="fa-solid fa-user-tag <?= navIconClass('/hrpage-1') ?>"></i>
+                        <i class="fa-solid fa-user-tag <?= navIconClass($employee201Pages) ?>"></i>
                     </span>
                     <span>Employee 201</span>
+                </a>
+
+                <a href="<?= BASE_URL ?>/admin-resignation" class="<?= navLinkClass('/admin-resignation') ?>">
+                    <span class="flex items-center justify-center w-5 h-5 shrink-0">
+                        <i class="fa-solid fa-file-circle-exclamation <?= navIconClass('/admin-resignation') ?>"></i>
+                        
+                    </span>
+                    <span>Resignation list</span>
                 </a>
 
             <?php endif; ?>
