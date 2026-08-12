@@ -48,6 +48,26 @@ function initials(string $first, string $last): string
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee 201 Files</title>
     <?php include ROOT_PATH . '/link/top.php'; ?>
+    <style>
+        .thin-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #C6CBD1 transparent;
+        }
+        .thin-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .thin-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .thin-scroll::-webkit-scrollbar-thumb {
+            background-color: #C6CBD1;
+            border-radius: 999px;
+        }
+        .thin-scroll::-webkit-scrollbar-thumb:hover {
+            background-color: #9AA2AA;
+        }
+    </style>
 </head>
 
 <body class="bg-[#F5F6F7] font-['Inter']">
@@ -90,7 +110,7 @@ function initials(string $first, string $last): string
 
             <!-- Desktop table (scrollable) -->
             <div class="hidden md:block bg-white border border-black/5 rounded-xl overflow-hidden shadow-sm">
-                <div class="max-h-[65vh] overflow-y-auto">
+                <div class="max-h-[65vh] overflow-y-auto thin-scroll">
                     <table class="w-full text-sm border-collapse">
                         <thead class="sticky top-0 z-10">
                             <tr class="bg-[#F9FAFB] text-left text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6B7785] border-b border-[#E8EAEC]">
@@ -165,7 +185,7 @@ function initials(string $first, string $last): string
             </div>
 
             <!-- Mobile cards (scrollable) -->
-            <div id="employeeCardList" class="md:hidden flex flex-col gap-3 max-h-[70vh] overflow-y-auto pr-1">
+            <div id="employeeCardList" class="md:hidden flex flex-col gap-3 max-h-[70vh] overflow-y-auto pr-1 thin-scroll">
                 <?php if (empty($employees)): ?>
                     <div class="bg-white border border-black/5 rounded-xl px-5 py-10 text-center text-[#9AA2AA] shadow-sm">
                         No employees found.
