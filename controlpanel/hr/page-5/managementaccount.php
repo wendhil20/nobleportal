@@ -23,6 +23,39 @@ $listStmt->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Account Management</title>
     <?php include ROOT_PATH . '/link/top.php'; ?>
+    <style>
+        /* ==== SCROLLABLE TABLE CUSTOM SCROLLBAR ==== */
+        .table-scroll {
+            max-height: 60vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+        }
+
+        .table-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .table-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .table-scroll::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.15);
+            border-radius: 9999px;
+        }
+
+        .table-scroll::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0, 0, 0, 0.28);
+        }
+
+        /* Keep header pinned while the body scrolls */
+        .table-scroll thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+    </style>
 </head>
 
 <body class="bg-[#F5F6F7] font-['Inter']">
@@ -85,13 +118,13 @@ $listStmt->close();
             </div>
 
             <div class="bg-white border border-black/5 rounded-xl shadow-md overflow-hidden">
-                <div class="overflow-x-auto">
+                <div class="table-scroll overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="bg-gray-50 border-b border-black/5 text-left text-xs uppercase tracking-wide text-black/40">
-                                <th class="px-5 py-3 font-medium">Name</th>
-                                <th class="px-5 py-3 font-medium">Username</th>
-                                <th class="px-5 py-3 font-medium text-right">Actions</th>
+                                <th class="px-5 py-3 font-medium bg-gray-50">Name</th>
+                                <th class="px-5 py-3 font-medium bg-gray-50">Username</th>
+                                <th class="px-5 py-3 font-medium text-right bg-gray-50">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="accountsTableBody" class="divide-y divide-black/5">
@@ -104,7 +137,8 @@ $listStmt->close();
                                     <tr data-row-id="<?= (int)$acc['id'] ?>"
                                         data-first="<?= htmlspecialchars(strtolower($acc['first_name']), ENT_QUOTES) ?>"
                                         data-last="<?= htmlspecialchars(strtolower($acc['last_name']), ENT_QUOTES) ?>"
-                                        data-username="<?= htmlspecialchars(strtolower($acc['username']), ENT_QUOTES) ?>">
+                                        data-username="<?= htmlspecialchars(strtolower($acc['username']), ENT_QUOTES) ?>"
+                                        class="hover:bg-black/[0.02] transition-colors">
                                         <td class="px-5 py-3 text-black/80 row-name">
                                             <?= htmlspecialchars($acc['first_name'] . ' ' . $acc['last_name']) ?>
                                         </td>
