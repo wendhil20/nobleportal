@@ -157,6 +157,8 @@ function navIconClass($path)
                     <span>Register Employee</span>
                 </a>
 
+                 <p class="px-3 py-2 text-[10px] font-semibold tracking-[0.15em] uppercase text-black/30">Management</p>
+
                 <a href="<?= BASE_URL ?>/management-account" class="<?= navLinkClass('/management-account') ?>">
                     <span class="flex items-center justify-center w-5 h-5 shrink-0">
                         <i class="fa-solid fa-user-gear <?= navIconClass('/management-account') ?>"></i>
