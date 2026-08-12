@@ -32,19 +32,14 @@ if ($firstName === '' || $lastName === '' || $username === '' || $password === '
     exit;
 }
 
-// NOTE: replace $conn / $pdo depending on what connect.php uses
-$checkStmt = $conn->prepare("SELECT id FROM nobleuserlist WHERE username = ?");
-$checkStmt->bind_param("s", $username);
-$checkStmt->execute();
-$checkStmt->store_result();
-
-if ($checkStmt->num_rows > 0) {
-    $response['message'] = "Username '$username' is already taken. Please choose another.";
-    $checkStmt->close();
-    echo json_encode($response);
-    exit;
-}
-$checkStmt->close();
+// NOTE: `username` column must have a UNIQUE index/key in the DB
+// (confirmed present on nobleuserlist.username).
+// We removed the separate SELECT-then-INSERT check because it has a
+// race condition: two near-simultaneous requests (double click, double
+// event binding, retried request, etc.) can both pass the SELECT check
+// before either INSERT completes, resulting in duplicate rows.
+// Relying on the DB's UNIQUE constraint + catching the duplicate error
+// code (1062) makes the "is this username taken" check atomic.
 
 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
@@ -54,6 +49,9 @@ $insertStmt->bind_param("ssss", $firstName, $lastName, $username, $hashedPasswor
 if ($insertStmt->execute()) {
     $response['success'] = true;
     $response['message'] = "Successfully registered $firstName $lastName. Username: $username";
+} elseif ($conn->errno === 1062) {
+    // Duplicate entry caught here at the DB level — no race condition possible
+    $response['message'] = "Username '$username' is already taken. Please choose another.";
 } else {
     $response['message'] = "Error saving record: " . $conn->error;
 }

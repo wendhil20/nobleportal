@@ -160,6 +160,10 @@ requireAccess('hr','head');
         const alertBox = document.getElementById('alertBox');
         const submitBtn = document.getElementById('submitBtn');
 
+        // Guard flag: prevents duplicate submissions from double-click,
+        // double-bound listeners, or slow network + repeated Enter/click
+        let isSubmitting = false;
+
         function showAlert(message, isSuccess) {
             alertBox.textContent = message;
             alertBox.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-600', 'bg-green-50', 'border-green-200', 'text-green-600');
@@ -172,6 +176,9 @@ requireAccess('hr','head');
 
         registerForm.addEventListener('submit', async function (e) {
             e.preventDefault();
+
+            if (isSubmitting) return; // block duplicate calls while one is in-flight
+            isSubmitting = true;
 
             submitBtn.disabled = true;
             submitBtn.textContent = 'Processing...';
@@ -195,6 +202,7 @@ requireAccess('hr','head');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Register';
+                isSubmitting = false; // release lock
             }
         });
     </script>

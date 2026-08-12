@@ -157,8 +157,15 @@ function navIconClass($path)
                     <span>Register Employee</span>
                 </a>
 
+                <a href="<?= BASE_URL ?>/management-account" class="<?= navLinkClass('/management-account') ?>">
+                    <span class="flex items-center justify-center w-5 h-5 shrink-0">
+                        <i class="fa-solid fa-user-gear <?= navIconClass('/management-account') ?>"></i>
+                    </span>
+                    <span>Employee List</span>
+                </a>
+
                 <?php
-                $employee201Pages = ['/hrpage-1', '/hr-employees', '/hr-orientation', 'view-information'];
+                $employee201Pages = ['/hrpage-1', '/hr-employees', '/hr-orientation', 'view-information', ];
                 ?>
                 <a href="<?= BASE_URL ?>/hrpage-1" class="<?= navLinkClass($employee201Pages) ?>">
                     <span class="flex items-center justify-center w-5 h-5 shrink-0">
@@ -174,6 +181,8 @@ function navIconClass($path)
                     </span>
                     <span>Resignation list</span>
                 </a>
+
+                
 
             <?php endif; ?>
 

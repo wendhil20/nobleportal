@@ -70,15 +70,21 @@ $adminRoutes = [
     'departmentcrud',
     'view-information',
     'hr-flagdocument',
-    'hr-orientation',
 
     //hr page 2
     'hrpage-2',
     'registerprocess',
 
+    //hr page 3
+    'hr-orientation',
+
     //hr page 4
     'admin-resignation',
     'admin-resignation-handler',
+
+    //hr page 5
+    'management-account',
+    'accountupdate-process',
 
 ];
 
@@ -127,6 +133,10 @@ $routes = [
     //hr page 4
     'admin-resignation'                                                  => 'controlpanel/hr/page-4/resignrequest.php',
     'admin-resignation-handler'                                          => 'controlpanel/hr/page-4/backend/resignation-actions.php',
+
+    //hr page 5
+    'management-account'                                                 => 'controlpanel/hr/page-5/managementaccount.php',
+    'accountupdate-process'                                                => 'controlpanel/hr/page-5/backend/accountupdate_process.php',
 
     //user
     'login'                                                              => 'ui/auth/login/index.php',
